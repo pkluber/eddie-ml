@@ -8,14 +8,14 @@ import numpy as np
 from ase import Atoms
 from ase.io import read, write
 import os
-from elf import ElF
+from .elf import ElF
 import ipyparallel as ipp
 import re
 import pandas as pd
-from read_cubes import load_cube, get_atoms, get_energy
-from real_space import get_elfs_oriented, orient_elfs
-from geom import make_complex, rotate_tensor
-from serial_view import serial_view
+from .read_cubes import load_cube, get_atoms, get_energy
+from .real_space import get_elfs_oriented, orient_elfs
+from .geom import make_complex, rotate_tensor
+from .serial_view import serial_view
 
 def get_view(profile = 'default', n = -1):
     """

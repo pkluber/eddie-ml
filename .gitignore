@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Output files
+output.*
+*.dat
+*.cube
+
+# Unpacked data
+data/bcurves
+
+# SLURM
+slurm-*.out
+*.slurm

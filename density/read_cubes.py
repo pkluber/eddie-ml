@@ -2,7 +2,7 @@
 import numpy as np
 import struct
 from ase.units import Bohr
-from density import Density
+from .density import Density
 from ase import Atoms
 import re
 import os
@@ -170,7 +170,7 @@ def get_density(filepath):
 
 
 
-def get_energy(outputfile, keywords=['IE_SRSMP2']):
+def get_energy(outputfile, keywords=['energy']):
     '''
     Find output energy values specified by keywords in results file.
     '''
@@ -179,8 +179,8 @@ def get_energy(outputfile, keywords=['IE_SRSMP2']):
     with open(outputfile, 'r') as file:
         for keyword in keywords:
             file.seek(0)
-            p = re.compile(keyword + r'=.*-?\d*.?\d*')
-            p_wo = re.compile(keyword + r'=\s*')
+            p = re.compile(keyword + r' =.*-?\d*.?\d*')
+            p_wo = re.compile(keyword + r' =\s*')
             content = file.read()
             withnumber = p.findall(content)[0]
             wonumber = p_wo.findall(content)[0]

@@ -9,12 +9,12 @@ from sympy import N
 from functools import reduce
 import time
 from ase import Atoms
-from density import Density
+from .density import Density
 from ase.units import Bohr
-from geom import get_nncs_angles, get_elfcs_angles, get_casimir
-from geom import make_real, rotate_tensor, fold_back_coords, power_spectrum, transform
-from elf import ElF
-from serial_view import serial_view
+from .geom import get_nncs_angles, get_elfcs_angles, get_casimir
+from .geom import make_real, rotate_tensor, fold_back_coords, power_spectrum, transform
+from .elf import ElF
+from .serial_view import serial_view
 
 def mesh_around(pos, radius, density, unit = 'A'):
     '''

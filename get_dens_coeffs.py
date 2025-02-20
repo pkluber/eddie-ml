@@ -38,6 +38,6 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     start = time.time()
-    preprocess_all(args.path, name=args.outputname, basis=default_basis, dens_ext=args.cube_ext, eng_ext=args.dat_ext, method=args.method, save_npy=True)
+    preprocess_all(args.path, name=args.outputname, basis=default_basis, dens_ext=args.cube_ext, eng_ext=args.dat_ext, method=args.method)
     total_time = time.time() - start
     print('Time for processing density coefficients: {:.0f}min {:.2f}sec '.format((total_time / 60), (total_time % 60)))

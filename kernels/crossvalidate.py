@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from dimer_kernels import ElementalDimerSumKernel, ElementalDimerAverageKernel
-from dscribe.kernels import REMatchKernel, AverageKernel, SumKernel
+from dscribe.kernels import REMatchKernel, AverageKernel
 import os 
 import matplotlib.pyplot as plt
 import warnings
