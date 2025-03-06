@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Get the deformation density coeffi
 parser.add_argument('--outputname', type=str, default='output', help='Name of output file.')
 parser.add_argument('--path', type=str, default=os.getcwd(), help='Path containing cube files.')
 parser.add_argument('--cube_ext', type=str, default='cube', help='Cube file extension.')
-parser.add_argument('--dat_ext', type=str, default='dat', help='Data file extension.')
+parser.add_argument('--dat_ext', type=str, default='eng', help='Data file extension.')
 parser.add_argument('--method', type=str, default='elf', help='Alignment method: None, ELF, NN, or power spectrum')
 
 # Modify this basis set for coefficients as needed - currently, all elements have the same number

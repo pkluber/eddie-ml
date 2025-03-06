@@ -169,22 +169,3 @@ def get_density(filepath):
     return Density(rho_reshaped, unit_cell_adj*Bohr, grid, boxorig*Bohr)  # returns unit cell in Angstrom
 
 
-
-def get_energy(outputfile, keywords=['energy']):
-    '''
-    Find output energy values specified by keywords in results file.
-    '''
-    assert isinstance(keywords, (list, tuple))
-    values = []
-    with open(outputfile, 'r') as file:
-        for keyword in keywords:
-            file.seek(0)
-            p = re.compile(keyword + r' =.*-?\d*.?\d*')
-            p_wo = re.compile(keyword + r' =\s*')
-            content = file.read()
-            withnumber = p.findall(content)[0]
-            wonumber = p_wo.findall(content)[0]
-            values.append(float(withnumber[len(wonumber):]))
-            values.append(os.path.basename(outputfile))
-    
-    return values

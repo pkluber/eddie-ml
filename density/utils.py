@@ -12,7 +12,7 @@ from .elf import ElF
 import ipyparallel as ipp
 import re
 import pandas as pd
-from .read_cubes import load_cube, get_atoms, get_energy
+from .read_cubes import load_cube, get_atoms
 from .real_space import get_elfs_oriented, orient_elfs
 from .geom import make_complex, rotate_tensor
 from .serial_view import serial_view
@@ -56,9 +56,8 @@ def __get_all(paths, method, basis, eng_ext, dens_ext, n_atoms):
     atoms = list(map(get_atoms,[p + '.' + dens_ext for p in paths])) #,[n_atoms]*len(paths)))
     elfs = list(map(__get_elfs, [p + '.' + dens_ext for p in paths],
      atoms, [basis]*len(paths), [method]*len(paths)))
-    energies = list(map(get_energy, [p + '.' + eng_ext for p in paths]))
 
-    return atoms, elfs,energies
+    return atoms, elfs
 
 def atoi(text):
     return int(text) if text.isdigit() else text
@@ -160,21 +159,19 @@ def preprocess_all(root, basis, name=None, dens_ext = 'cube', eng_ext='xyz',
     all_results = list(view.map(__get_all,
      paths_dist, [method]*len(paths_dist), [basis]*len(paths_dist),
       [eng_ext]*len(paths_dist), [dens_ext]*len(paths_dist), [n_atoms]*len(paths_dist)))
-    atoms, elfs, energies = list(map(list, zip(*all_results)))
+    atoms, elfs = list(map(list, zip(*all_results)))
 
-    energies = [e for sublist in energies for e in sublist]
     elfs = [e for sublist in elfs for e in sublist]
     atoms = [a for sublist in atoms for a in sublist]
     if name == None:
         name = root.split('/')[-1]
     else:
         name = str(name)
-    elfs_to_hdf5(elfs, name + '.hdf5')
+    elfs_to_hdf5(elfs, name + '.hdf5', paths)
     write(name +'.traj', atoms)
-    pd.DataFrame(energies).to_csv(name + '.energies', index = None, header = None)
     return elfs
 
-def elfs_to_hdf5(elfs, path):
+def elfs_to_hdf5(elfs, path, paths):
     """
     Given a list of electronic desriptors (ElFs) save them in an .hdf5 file
 
@@ -185,6 +182,8 @@ def elfs_to_hdf5(elfs, path):
             to save
         path: str
             file destination
+        paths: list[str]
+            list of paths
 
     Returns
     --------
@@ -220,13 +219,13 @@ def elfs_to_hdf5(elfs, path):
             values.append(v)
             angles.append(atom.angles)
             species.append(atom.species.encode('ascii','ignore'))
-            systems.append(s)
+            systems.append(os.path.basename(paths[s]))
 
     file['value'] = np.array(values)
     file['length'] = np.array(lengths)
     file['species'] = species
     file['angles'] = np.array(angles)
-    file['system'] = np.array(systems)
+    file['system'] = systems
     file.flush()
 
 def hdf5_to_elfs(path, species_filter = '', grouped = False,
