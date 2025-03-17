@@ -34,7 +34,6 @@ for file in data_dir.rglob('*'):
             charges = [0, 0, 0]
         elif file.name.startswith('C'):
             charges = [0, 1, -1]
-            continue
         else:
             continue
 
