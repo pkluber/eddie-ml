@@ -34,7 +34,7 @@ def read_cube(cube_file):
         
     return dct
 
-def xyz_to_Mol(filepath, basis='cc-pVTZ', n=0, charge=0):
+def xyz_to_Mol(filepath, basis='cc-pVTZ', n=0, charge=0, spin=0):
     '''
     Reads in an extended XYZ file for an xyz file and returns the nth monomer.
     Specify n=0 or 1, and charge for charged species.
@@ -48,11 +48,11 @@ def xyz_to_Mol(filepath, basis='cc-pVTZ', n=0, charge=0):
         coord = coords[i]
         atoms.append([symb[i], (coord[0], coord[1], coord[2])])
     
-    mol = gto.M(atom=atoms, basis=basis, charge=charge)
+    mol = gto.M(atom=atoms, basis=basis, charge=charge, spin=spin)
 
     return mol
 
-def dimerxyz_to_Mol(filepath, basis='cc-pVTZ', charge=0):
+def dimerxyz_to_Mol(filepath, basis='cc-pVTZ', charge=0, spin=0):
     '''
     Reads in an extended XYZ file for an intermolecular dimer
     and converts it to a PySCF object. 
@@ -67,7 +67,7 @@ def dimerxyz_to_Mol(filepath, basis='cc-pVTZ', charge=0):
         coord = coords[i]
         atoms.append([symb[i], (coord[0], coord[1], coord[2])])
     
-    mol = gto.M(atom=atoms, basis=basis, charge=charge)
+    mol = gto.M(atom=atoms, basis=basis, charge=charge, spin=spin)
 
     return mol
 

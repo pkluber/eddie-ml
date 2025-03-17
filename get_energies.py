@@ -44,20 +44,24 @@ for file in data_dir.rglob('*'):
         # Determine charges
         if file.name in NEUTRAL_SYSTEMS: # S66, part of SSI
             charges = 0, 0, 0
+            spins = 0, 0, 0
         elif file.name.startswith('C'): # IL174 
-            charges = 1, -1, 0
+            charges = 0, 1, -1
+            spins = 0, 0, 0
         else: # other charged part of SSI
             continue
 
         tot_charge, mon1_charge, mon2_charge = charges 
+        tot_spin, mon1_spin, mon2_spin = spins
 
         filename = str(file)
         try:
-            dimer = dimerxyz_to_Mol(filename, charge=tot_charge)
-            mono1 = xyz_to_Mol(filename, n=0, charge=mon1_charge)
-            mono2 = xyz_to_Mol(filename, n=1, charge=mon2_charge)
-        except RuntimeError:
+            dimer = dimerxyz_to_Mol(filename, charge=tot_charge, spin=tot_spin)
+            mono1 = xyz_to_Mol(filename, n=0, charge=mon1_charge, spin=mon1_spin)
+            mono2 = xyz_to_Mol(filename, n=1, charge=mon2_charge, spin=mon2_spin)
+        except RuntimeError as e:
             print(f'Failed to initialize Mole objects for {file.name}: probably spin is wrong')
+            print(e)
             continue
         
         try:
