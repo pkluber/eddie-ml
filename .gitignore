@@ -129,9 +129,10 @@ dmypy.json
 .pyre/
 
 # Output files
-output.*
+output*
 *.dat
 *.cube
+*.png
 
 # Unpacked data
 data/bcurves
