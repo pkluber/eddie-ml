@@ -130,8 +130,6 @@ def rks_lda(m: gto.Mole) -> np.ndarray | None:
     mf.grids.level = 1
     mf.xc = 'lda'
     mf.kernel()
-    if not mf.converged:
-        return None
     return mf.make_rdm1(ao_repr=True)
 
 def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charges=None, write_cube=False, path=None):
@@ -205,11 +203,6 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
         dimer_dm = rks_lda(dimer)
         mono1_dm = rks_lda(mono1)
         mono2_dm = rks_lda(mono2)
-
-        # Skip this if the DFT failed to converge
-        if dimer_dm is None or mono1_dm is None or mono2_dm is None:
-            print(f'{filename} failed to converge!', flush=True)
-            return
 
     # Generate the cube dimensions based on the shape of the dimer
     orig = generate_uniform_grid(dimer, spacing=resolution, rotate=False, verbose=False)[1]

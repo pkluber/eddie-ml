@@ -33,7 +33,7 @@ for file in data_dir.rglob('*'):
         if file.name in neutral_list:
             charges = [0, 0, 0]
         elif file.name.startswith('C'):
-            charges = [0, 1, -1]
+            charges = [1, -1, 0]
         else:
             continue
 
