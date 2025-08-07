@@ -1,4 +1,5 @@
 import numpy as np
+import ctypes
 from pyscf.tools.cubegen import Cube
 from pyscf import gto, scf, mp, df, dft
 from pyscf import lib
@@ -126,7 +127,7 @@ def write_single_cube(filename, resolution=0.1, write_cube=True, charge=0):
 
 
 def rks_lda(m: gto.Mole) -> np.ndarray | None:
-    mf = dft.RKS(m)
+    mf = dft.RKS(m).to_gpu()
     mf.grids.level = 1
     mf.xc = 'lda'
     mf.kernel()

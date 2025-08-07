@@ -136,7 +136,14 @@ output*
 
 # Unpacked data
 data/bcurves
+data/L7
+data/CC3
 
 # SLURM
 slurm-*.out
 *.slurm
+
+# PBS
+*.pbs
+ueddie*.e*
+ueddie*.o*
