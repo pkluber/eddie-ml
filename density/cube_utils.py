@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 import ctypes
 from pyscf import gto
 from pyscf.tools.cubegen import Cube
@@ -223,7 +224,8 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
     dimer_rho = np.empty(dimer_cube.get_ngrids())
     for ip0, ip1 in lib.prange(0, dimer_cube.get_ngrids(), blksize):
         ao = dimer.eval_gto('GTOval', dimer_cube.get_coords()[ip0:ip1]) 
-        dimer_rho[ip0:ip1] = dft.numint.eval_rho(dimer, ao, dimer_dm)
+        ao = cp.asarray(ao)
+        dimer_rho[ip0:ip1] = dft.numint.eval_rho(dimer, ao.T, dimer_dm).get()
     dimer_rho = dimer_rho.reshape(nx, ny, nz)
     
     # Monomer densities
@@ -231,14 +233,16 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
     mono1_rho = np.empty(mono1_cube.get_ngrids())
     for ip0, ip1 in lib.prange(0, mono1_cube.get_ngrids(), blksize):
         ao = mono1.eval_gto('GTOval', mono1_cube.get_coords()[ip0:ip1])
-        mono1_rho[ip0:ip1] = dft.numint.eval_rho(mono1, ao, mono1_dm)
+        ao = cp.asarray(ao)
+        mono1_rho[ip0:ip1] = dft.numint.eval_rho(mono1, ao.T, mono1_dm).get()
     mono1_rho = mono1_rho.reshape(nx, ny, nz)
 
     mono2_cube = Cube(mono2, nx, ny, nz, margin=extension, origin=orig, extent=box)
     mono2_rho = np.empty(mono2_cube.get_ngrids())
     for ip0, ip1 in lib.prange(0, mono2_cube.get_ngrids(), blksize):
         ao = mono2.eval_gto('GTOval', mono2_cube.get_coords()[ip0:ip1])
-        mono2_rho[ip0:ip1] = dft.numint.eval_rho(mono2, ao, mono2_dm)
+        ao = cp.asarray(ao)
+        mono2_rho[ip0:ip1] = dft.numint.eval_rho(mono2, ao.T, mono2_dm).get()
     mono2_rho = mono2_rho.reshape(nx, ny, nz)
     
     rho_diff = dimer_rho - (mono1_rho + mono2_rho)
