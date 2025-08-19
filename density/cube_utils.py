@@ -135,6 +135,7 @@ def rks_lda(m: Mole) -> np.ndarray | None:
     mf = dft.RKS(m).to_gpu()
     mf.grids.level = 1
     mf.xc = 'lda'
+    mf = mf.netwon()
     mf.kernel()
     return mf.make_rdm1(ao_repr=True)
 
