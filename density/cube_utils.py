@@ -1,11 +1,15 @@
 import numpy as np
 import ctypes
+from pyscf import gto
 from pyscf.tools.cubegen import Cube
-from pyscf import gto, scf, mp, df, dft
+from gpu4pyscf import scf, mp, df, dft
 from pyscf import lib
 from ase.io import read
 import os
 from glob import glob
+
+from typing import TypeAlias
+Mole: TypeAlias = gto.Mole
 
 def read_cube(cube_file):
     with open(cube_file, 'r') as f:
@@ -126,7 +130,7 @@ def write_single_cube(filename, resolution=0.1, write_cube=True, charge=0):
             comment='Cube_vector {}'.format(box))
 
 
-def rks_lda(m: gto.Mole) -> np.ndarray | None:
+def rks_lda(m: Mole) -> np.ndarray | None:
     mf = dft.RKS(m).to_gpu()
     mf.grids.level = 1
     mf.xc = 'lda'
@@ -218,7 +222,7 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
     # Dimer density
     dimer_rho = np.empty(dimer_cube.get_ngrids())
     for ip0, ip1 in lib.prange(0, dimer_cube.get_ngrids(), blksize):
-        ao = dimer.eval_gto('GTOval', dimer_cube.get_coords()[ip0:ip1])
+        ao = dimer.eval_gto('GTOval', dimer_cube.get_coords()[ip0:ip1]) 
         dimer_rho[ip0:ip1] = dft.numint.eval_rho(dimer, ao, dimer_dm)
     dimer_rho = dimer_rho.reshape(nx, ny, nz)
     
