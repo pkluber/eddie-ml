@@ -3,14 +3,11 @@ import tarfile, os
 
 from density.cube_utils import xyz_to_Mol, dimerxyz_to_Mol
 
-from pyscf import scf, mp
-from pyscf.gto import Mole
+from ase.io import read
+import psi4
 
-try:
-    import gpu4pyscf
-    use_gpu = True
-except ImportError:
-    use_gpu = False
+psi4.core.set_num_threads(48)
+psi4.core.set_memory('20 GB')
 
 NEUTRAL_TAR = 'data/neutral-dimers.tar.gz' 
 
@@ -26,30 +23,15 @@ def list_contents(tarfile_path: str) -> list[str]:
 
 NEUTRAL_SYSTEMS = list_contents(NEUTRAL_TAR)
 
-if use_gpu:
-    print('GPU is enabled!')
-else:
-    print('GPU is not enabled :C')
-
-def gpuify(x):
-    if use_gpu:
-        return x.to_gpu()
-    return x
-
-def mp2(mol: Mole) -> mp.MP2:
-    mf = gpuify(scf.RHF(mol))
-    mf.basis = 'aug-cc-pvqz'
-    mf.kernel()
-    mp2 = gpuify(mp.MP2(mf))
-    mp2.basis = 'cc-pvtz'
-    mp2.kernel()
-    return mp2
+def mp2(geom: str) -> float:
+    mol = psi4.geometry(geom)
+    psi4.set_options({'basis': 'aug-cc-pvqz'})
+    hf_e, hf_wfn = psi4.energy("scf", return_wfn=True)
+    psi4.set_options({'basis': 'cc-pvtz'})
+    mp2_e, mp2_wfn = psi4.energy("mp2", ref_wfn=hf_wfn, return_wfn=True)
+    return mp2_e
     
-
-def mp2_energy(mol: Mole):
-    return mp2(mol).e_tot
-
-def srs_mp2_int_energy(dimer: Mole, mono1: Mole, mono2: Mole):
+def srs_mp2_int_energy(dimer_geom: str, mono1_geom: str, mono2_geom: str):
     # Ensure basis is cc-pVTZ for SRS-MP2
     dimer.basis = mono1.basis = mono2.basis = 'cc-pvtz' 
     
@@ -80,6 +62,25 @@ if ENERGY_FILE.is_file() and ENERGY_FILE.exists():
         energies = fd.readlines()
         calculated_systems = [line.split(' ')[0] for line in energies]
 
+def geom_from_xyz_dimer(filename: str, charges: tuple[int, int, int]) -> tuple[str, str, str] | None:
+    with open(filename) as fd:
+        lines = fd.readlines() # note preserves \n characters 
+        try:
+            num_atoms_m1 = int(lines[0])
+            num_atoms_m2 = int(lines[num_atoms_m1+1])
+            
+            m1_start = 1
+            geometry_m1 = "".join(lines[m1_start:m1_start+num_atoms_m1])
+            m2_start = num_atoms_m1 + 2
+            geometry_m2 = "".join(lines[m2_start:m2_start+num_atoms_m2])
+
+            return f'{charges[0]} 0\n{geometry_m1+geometry_m2}'
+                    f'{charges[1]} 0\n{geometry_m1}', \
+                    f'{charges[2]} 0\n{geometry_m2}', \
+        except ValueError:
+            print(f'Error parsing xyz file {filename}')
+            return None
+        
 
 data_dir = Path('data/bcurves')
 for file in data_dir.rglob('*'):
@@ -91,29 +92,23 @@ for file in data_dir.rglob('*'):
         # Determine charges
         if file.name in NEUTRAL_SYSTEMS: # S66, part of SSI
             charges = 0, 0, 0
-            spins = 0, 0, 0
         elif file.name.startswith('C'): # IL174 
             charges = 0, 1, -1
-            spins = 0, 0, 0
         else: # other charged part of SSI
             continue
 
         tot_charge, mon1_charge, mon2_charge = charges 
-        tot_spin, mon1_spin, mon2_spin = spins
 
         filename = str(file)
         try:
-            dimer = dimerxyz_to_Mol(filename, charge=tot_charge, spin=tot_spin)
-            mono1 = xyz_to_Mol(filename, n=0, charge=mon1_charge, spin=mon1_spin)
-            mono2 = xyz_to_Mol(filename, n=1, charge=mon2_charge, spin=mon2_spin)
-        except RuntimeError as e:
-            print(f'Failed to initialize Mole objects for {file.name}: probably spin is wrong')
-            print(e)
+            dimer_geom, mono1_geom, mono2_geom = geom_from_xyz_dimer(filename, charges)
+        except TypeError:
+            print(f'Failed to read dimer xyz for {file.name}')
             continue
         
         try:
             print(f'Running calculations for {file.name}', flush=True)
-            interaction_energy = srs_mp2_int_energy(dimer, mono1, mono2)
+            interaction_energy = srs_mp2_int_energy(dimer_geom, mono1_geom, mono2_geom)
             with open('energies.dat', 'a+') as fd:
                 fd.write(f'{file.name} {interaction_energy}\n')
             print(f'Finished calculations for {file.name}!', flush=True)
