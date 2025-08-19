@@ -137,6 +137,9 @@ def rks_lda(m: Mole) -> np.ndarray | None:
     mf.xc = 'lda'
     mf = mf.newton()
     mf.kernel()
+
+    if not mf.converged:
+        return None
     return mf.make_rdm1(ao_repr=True)
 
 def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charges=None, write_cube=False, path=None):
@@ -208,6 +211,11 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
         mono2_dm = m2_mf.make_rdm1(ao_repr=True)
     elif method == 'LDA':
         dimer_dm = rks_lda(dimer)
+        if dimer_dm is None:
+            print('Dimer failed to converge! Moving on...')
+            return
+
+        # If dimer converged then monos should 
         mono1_dm = rks_lda(mono1)
         mono2_dm = rks_lda(mono2)
 
