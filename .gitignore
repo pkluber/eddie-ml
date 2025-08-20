@@ -148,3 +148,6 @@ slurm-*.out
 ueddie*.e*
 ueddie*.o*
 logs
+
+# Psi4 scratch files 
+psi.*
