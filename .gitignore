@@ -147,3 +147,4 @@ slurm-*.out
 *.pbs
 ueddie*.e*
 ueddie*.o*
+logs

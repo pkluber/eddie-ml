@@ -131,9 +131,9 @@ def write_single_cube(filename, resolution=0.1, write_cube=True, charge=0):
             comment='Cube_vector {}'.format(box))
 
 
-def rks_lda(m: Mole) -> np.ndarray | None:
+def rks_lda(m: Mole, level: int = 1) -> np.ndarray | None:
     mf = dft.RKS(m).to_gpu()
-    mf.grids.level = 1
+    mf.grids.level = level
     mf.xc = 'lda'
     mf = mf.newton()
     mf.kernel()
@@ -142,7 +142,7 @@ def rks_lda(m: Mole) -> np.ndarray | None:
         return None
     return mf.make_rdm1(ao_repr=True)
 
-def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charges=None, write_cube=False, path=None):
+def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, level=1, charges=None, write_cube=False, path=None):
     '''
     Reads in a dimer XYZ and prints out a .cube file containing
     the electron density difference between the individual monomers and the dimer.
@@ -210,14 +210,14 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, charg
         m2_mf.kernel()
         mono2_dm = m2_mf.make_rdm1(ao_repr=True)
     elif method == 'LDA':
-        dimer_dm = rks_lda(dimer)
+        dimer_dm = rks_lda(dimer, level=level)
         if dimer_dm is None:
             print('Dimer failed to converge! Moving on...')
             return
 
         # If dimer converged then monos should 
-        mono1_dm = rks_lda(mono1)
-        mono2_dm = rks_lda(mono2)
+        mono1_dm = rks_lda(mono1, level=level)
+        mono2_dm = rks_lda(mono2, level=level)
 
     # Generate the cube dimensions based on the shape of the dimer
     orig = generate_uniform_grid(dimer, spacing=resolution, rotate=False, verbose=False)[1]

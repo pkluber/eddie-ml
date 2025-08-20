@@ -4,6 +4,15 @@ import os
 
 from density import cube_utils
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Generate deformation densities (as .cube files).')
+parser.add_argument('--resolution', type=float, default=0.5, help='Resolution of grid')
+parser.add_argument('--extension', type=float, default=5.0, help='Extension of grid')
+parser.add_argument('--level', type=int, default=1, help='Level of LDA grid')
+
+args = parser.parse_args()
+
 neutral_tar = 'data/neutral-dimers.tar.gz' 
 charged_tar = 'data/charged-dimers.tar.gz'
 
@@ -38,6 +47,6 @@ for file in data_dir.rglob('*'):
             continue
 
         print(f'Processing {file} with charges {charges}', flush=True)
-        cube_utils.dimer_cube_difference(str(file), METHOD, resolution=0.5, extension=5, charges=charges, write_cube=True, path=str(file.parent))
+        cube_utils.dimer_cube_difference(str(file), METHOD, resolution=args.resolution, extension=args.extension, level=args.level, charges=charges, write_cube=True, path=str(file.parent))
         print('', flush=True)
 
