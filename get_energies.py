@@ -4,7 +4,7 @@ import tarfile, os
 import psi4
 
 psi4.core.set_num_threads(48)
-psi4.set_memory('20 GB')
+psi4.set_memory('80 GB')
 
 NEUTRAL_TAR = 'data/neutral-dimers.tar.gz' 
 
@@ -20,21 +20,31 @@ def list_contents(tarfile_path: str) -> list[str]:
 
 NEUTRAL_SYSTEMS = list_contents(NEUTRAL_TAR)
 
-def mp2(geom: str) -> float:
+def mp2(geom: str) -> tuple[float, float, psi4.core.Wavefunction]:
     mol = psi4.geometry(geom)
     psi4.set_options({'basis': 'aug-cc-pvqz'})
-    hf_e, hf_wfn = psi4.energy("scf", return_wfn=True)
+    hf_e, hf_wfn = psi4.energy('scf', return_wfn=True)
     psi4.set_options({'basis': 'cc-pvtz'})
-    mp2_e, mp2_wfn = psi4.energy("mp2", ref_wfn=hf_wfn, return_wfn=True)
-    return mp2_e
+    mp2_e, mp2_wfn = psi4.energy('mp2', mp2_type='df', ref_wfn=hf_wfn, return_wfn=True)
+    return hf_e, mp2_e, mp2_wfn
     
+MP2_OS_ENG = 'MP2 OPPOSITE-SPIN CORRELATION ENERGY'
+MP2_SS_ENG = 'MP2 SAME-SPIN CORRELATION ENERGY'
+
 def srs_mp2_int_energy(dimer_geom: str, mono1_geom: str, mono2_geom: str): 
-    d_mp2 = mp2(dimer_geom) 
-    m1_mp2 = mp2(mono1_geom)
-    m2_mp2 = mp2(mono2_geom)
-    
-    e_os_int = d_mp2.e_corr_os - m1_mp2.e_corr_os - m2_mp2.e_corr_os
-    e_ss_int = d_mp2.e_corr_ss - m1_mp2.e_corr_ss - m2_mp2.e_corr_ss
+    d_hf_e, d_mp2_e, d_wfn = mp2(dimer_geom) 
+    m1_hf_e, m1_mp2_e, m1_wfn = mp2(mono1_geom)
+    m2_hf_e, m2_mp2_e, m2_wfn = mp2(mono2_geom)
+        
+    d_corr_os = d_wfn.variable(MP2_OS_ENG)
+    d_corr_ss = d_wfn.variable(MP2_SS_ENG)
+    m1_corr_os = m1_wfn.variable(MP2_OS_ENG)
+    m1_corr_ss = m1_wfn.variable(MP2_SS_ENG)
+    m2_corr_os = m2_wfn.variable(MP2_OS_ENG)
+    m2_corr_ss = m2_wfn.variable(MP2_SS_ENG)
+
+    e_os_int = d_corr_os - m1_corr_os - m2_corr_os
+    e_ss_int = d_corr_ss - m1_corr_ss - m2_corr_ss
     eps_ds = e_os_int / e_ss_int
 
     if eps_ds >= 1:
@@ -44,7 +54,7 @@ def srs_mp2_int_energy(dimer_geom: str, mono1_geom: str, mono2_geom: str):
         c_os = 0.660
         c_ss = 1.140
 
-    uncorr_int = d_mp2._scf.e_tot - m1_mp2._scf.e_tot - m2_mp2._scf.e_tot
+    uncorr_int = d_hf_e - m1_hf_e - m2_hf_e
     
     return uncorr_int + c_os * e_os_int + c_ss * e_ss_int 
 
