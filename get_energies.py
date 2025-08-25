@@ -96,7 +96,7 @@ for file in data_dir.rglob('*'):
         # Determine charges
         if file.name in NEUTRAL_SYSTEMS: # S66, part of SSI
             charges = 0, 0, 0
-        elif file.name.startswith('C'): # IL174 
+        elif file.name.startswith('C'): # IL174, extraILs 
             charges = 0, 1, -1
         else: # other charged part of SSI
             continue
@@ -105,6 +105,7 @@ for file in data_dir.rglob('*'):
 
         filename = str(file)
         try:
+            psi4.core.clean()
             dimer_geom, mono1_geom, mono2_geom = geom_from_xyz_dimer(filename, charges)
         except TypeError:
             print(f'Failed to read dimer xyz for {file.name}')
