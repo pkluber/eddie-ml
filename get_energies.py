@@ -6,6 +6,13 @@ import psi4
 psi4.core.set_num_threads(48)
 psi4.set_memory('80 GB')
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Generate interaction energies (energies.dat file).')
+parser.add_argument('--newton', type=bool, default=False, help='Whether to use second-order SCF')
+
+args = parser.parse_args()
+
 NEUTRAL_TAR = 'data/neutral-dimers.tar.gz' 
 
 def list_contents(tarfile_path: str) -> list[str]:
@@ -22,7 +29,7 @@ NEUTRAL_SYSTEMS = list_contents(NEUTRAL_TAR)
 
 def mp2(geom: str) -> tuple[float, float, psi4.core.Wavefunction]:
     mol = psi4.geometry(geom)
-    psi4.set_options({'basis': 'aug-cc-pvqz'})
+    psi4.set_options({'basis': 'aug-cc-pvqz', 'soscf': args.newton})
     hf_e, hf_wfn = psi4.energy('scf', return_wfn=True)
     psi4.set_options({'basis': 'cc-pvtz'})
     mp2_e, mp2_wfn = psi4.energy('mp2', mp2_type='df', ref_wfn=hf_wfn, return_wfn=True)
