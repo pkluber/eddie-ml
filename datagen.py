@@ -3,6 +3,7 @@ import tarfile
 import os
 
 from density import cube_utils
+from utils import get_charges
 
 import argparse
 
@@ -38,13 +39,9 @@ for file in data_dir.rglob('*'):
         if cube_path.exists():
             print(f'Found .cube file for {file.name}', flush=True)
             continue
-
-        if file.name in neutral_list:
-            charges = [0, 0, 0]
-        elif file.name.startswith('C'):
-            charges = [1, -1, 0]
-        else:
-            continue
+        
+        total_charge, mono1_charge, mono2_charge = get_charges(file.name)
+        charges = [mono1_charge, mono2_charge, total_charge]
 
         print(f'Processing {file} with charges {charges}', flush=True)
         cube_utils.dimer_cube_difference(str(file), METHOD, resolution=args.resolution, extension=args.extension, level=args.level, charges=charges, write_cube=True, path=str(file.parent))

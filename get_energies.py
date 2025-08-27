@@ -1,5 +1,6 @@
 from pathlib import Path
 import tarfile, os
+from utils import get_charges
 
 import psi4
 
@@ -101,25 +102,7 @@ for file in data_dir.rglob('*'):
             continue
 
         # Determine charges
-        if file.name in NEUTRAL_SYSTEMS: # S66, part of SSI
-            charges = 0, 0, 0
-        elif file.name.startswith('C_'): # IL174
-            charges = 0, 1, -1
-        elif file.name.startswith('C'): # extraILs
-            if file.name.startswith('C0491_A0090') or file.name.startswith('C2004_A0073'):
-                charges = 0, -1, 1
-            else:
-                charges = 0, 1, -1
-        elif file.name.startswith('SSI'): # charged portion of SSI
-            split = file.name.split('-')
-            aa1 = split[1][3:]
-
-            if aa1 in ['ARG', 'LYS']:
-                charges = 0, 1, -1
-            else:
-                charges = 0, -1, 1
-
-        tot_charge, mon1_charge, mon2_charge = charges 
+        charges = get_charges(file.name)
 
         filename = str(file)
         try:
