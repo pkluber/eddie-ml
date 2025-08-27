@@ -1,0 +1,68 @@
+from pathlib import Path
+
+from utils import get_charges, geom_from_xyz_dimer_ghosts
+
+import psi4 
+
+psi4.core.set_num_threads(48)
+psi4.set_memory('80 GB')
+
+energies_path = Path('energies.dat')
+
+with open(energies_path) as fd:
+    lines = fd.readlines()
+    lines = [line.split(' ') for line in lines]
+    energies = {system.strip(): float(value) for system, value in lines}
+
+def cp_correct(cp_geom: str, geom: str):
+    psi4.geometry(cp_geom)
+    psi4.set_options({'basis': 'aug-cc-pvqz'})
+    hf_cp_e = psi4.energy('scf')
+    
+    psi4.geometry(geom)
+    hf_e = psi4.energy('scf')
+
+    return hf_cp_e - hf_e
+
+
+def cp_correction(mono1_cp_geom: str, mono2_cp_geom: str, mono1_geom: str, mono2_geom: str):
+    return cp_correct(mono1_cp_geom, mono1_geom) + cp_correct(mono2_cp_geom, mono2_geom) 
+
+
+data_path = Path('data/bcurves')
+for file in data_path.rglob('*'):
+    if file.is_file() and file.suffix == '.xyz':
+        if file.name not in energies:
+            continue
+
+        charges = get_charges(file.name)
+        
+        filename = str(file)
+        try:
+            mono1_in_dimer_geom, mono2_in_dimer_geom, mono1_geom, mono2_geom = geom_from_xyz_dimer_ghosts(filename, charges)
+            print(mono1_in_dimer_geom)
+            print('')
+            print(mono2_in_dimer_geom)
+            print('')
+            print(mono1_geom)
+            print('')
+            print(mono2_geom)
+        except TypeError:
+            print(f'Failed to read dimer xyz for {file.name}')
+            continue
+       
+        try:
+            psi4.core.clean()
+            cp_corr = cp_correction(mono1_in_dimer_geom, mono2_in_dimer_geom, mono1_geom, mono2_geom)
+            final_energy = energies[file.name] - cp_corr 
+            print(f'CP correction: {cp_corr}')
+            print(f'Final energy: {final_energy}')
+ 
+            with open('energies_cp.dat', 'a+') as fd:
+                fd.write(f'{file.name} {final_energy}\n')
+
+        except Exception as e:
+            print(e)
+            print(f'Failed to compute CP correction for {file.name}')
+            continue
+
