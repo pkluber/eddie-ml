@@ -34,10 +34,10 @@ def geom_from_xyz_dimer_ghosts(filename: str, charges: Tuple[int, int, int]) -> 
             ghosts_m1 = '@' + '@'.join(lines[m1_start:m1_start+num_atoms_m1])
             ghosts_m2 = '@' + '@'.join(lines[m2_start:m2_start+num_atoms_m2])
 
-            return f'{charges[1]} 1\n{geometry_m1}--\n{charges[2]} 1\n{ghosts_m2}\nno_com\nno_reorient', \
-                    f'{charges[2]} 1\n{geometry_m2}--\n{charges[1]} 1\n{ghosts_m1}\nno_com\nno_reorient', \
-                    f'{charges[1]} 1\n{geometry_m1}\nno_com\nno_reorient', \
-                    f'{charges[2]} 1\n{geometry_m2}\nno_com\nno_reorient'
+            return f'{charges[1]} 1\n{geometry_m1}--\n{charges[2]} 1\n{ghosts_m2}no_com\nno_reorient', \
+                    f'{charges[2]} 1\n{geometry_m2}--\n{charges[1]} 1\n{ghosts_m1}no_com\nno_reorient', \
+                    f'{charges[1]} 1\n{geometry_m1}no_com\nno_reorient', \
+                    f'{charges[2]} 1\n{geometry_m2}no_com\nno_reorient'
         except ValueError:
             print(f'Error parsing xyz file {filename}')
             return None

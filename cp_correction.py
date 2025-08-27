@@ -28,11 +28,16 @@ def cp_correct(cp_geom: str, geom: str):
 def cp_correction(mono1_cp_geom: str, mono2_cp_geom: str, mono1_geom: str, mono2_geom: str):
     return cp_correct(mono1_cp_geom, mono1_geom) + cp_correct(mono2_cp_geom, mono2_geom) 
 
+# Load energies_cp.dat and avoid recomputing
+with open('cp_energies.dat') as fd:
+    lines = fd.readlines()
+    lines = [line.split(' ') for line in lines]
+    calculated_systems = [line[0].strip() for line in lines]
 
 data_path = Path('data/bcurves')
 for file in data_path.rglob('*'):
     if file.is_file() and file.suffix == '.xyz':
-        if file.name not in energies:
+        if file.name not in energies or file.name in calculated_systems:
             continue
 
         charges = get_charges(file.name)
@@ -40,13 +45,6 @@ for file in data_path.rglob('*'):
         filename = str(file)
         try:
             mono1_in_dimer_geom, mono2_in_dimer_geom, mono1_geom, mono2_geom = geom_from_xyz_dimer_ghosts(filename, charges)
-            print(mono1_in_dimer_geom)
-            print('')
-            print(mono2_in_dimer_geom)
-            print('')
-            print(mono1_geom)
-            print('')
-            print(mono2_geom)
         except TypeError:
             print(f'Failed to read dimer xyz for {file.name}')
             continue
