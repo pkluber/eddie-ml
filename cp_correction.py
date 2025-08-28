@@ -29,10 +29,14 @@ def cp_correction(mono1_cp_geom: str, mono2_cp_geom: str, mono1_geom: str, mono2
     return cp_correct(mono1_cp_geom, mono1_geom) + cp_correct(mono2_cp_geom, mono2_geom) 
 
 # Load energies_cp.dat and avoid recomputing
-with open('cp_energies.dat') as fd:
-    lines = fd.readlines()
-    lines = [line.split(' ') for line in lines]
-    calculated_systems = [line[0].strip() for line in lines]
+cp_energies_path = Path('cp_energies.dat')
+if cp_energies_path.is_file():
+    with open(cp_energies_path) as fd:
+        lines = fd.readlines()
+        lines = [line.split(' ') for line in lines]
+        calculated_systems = [line[0].strip() for line in lines]
+else:
+    calculated_systems = []
 
 data_path = Path('data/bcurves')
 for file in data_path.rglob('*'):
@@ -50,17 +54,18 @@ for file in data_path.rglob('*'):
             continue
        
         try:
+            print(f'Starting calculation for {file.name}', flush=True)
             psi4.core.clean()
             cp_corr = cp_correction(mono1_in_dimer_geom, mono2_in_dimer_geom, mono1_geom, mono2_geom)
             final_energy = energies[file.name] - cp_corr 
             print(f'CP correction: {cp_corr}')
-            print(f'Final energy: {final_energy}')
+            print(f'Final energy: {final_energy}', flush=True)
  
-            with open('energies_cp.dat', 'a+') as fd:
+            with open(cp_energies_path, 'a+') as fd:
                 fd.write(f'{file.name} {final_energy}\n')
 
         except Exception as e:
             print(e)
-            print(f'Failed to compute CP correction for {file.name}')
+            print(f'Failed to compute CP correction for {file.name}', flush=True)
             continue
 

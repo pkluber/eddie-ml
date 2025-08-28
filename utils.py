@@ -19,6 +19,7 @@ def geom_from_xyz_dimer(filename: str, charges: Tuple[int, int, int]) -> Tuple[s
             print(f'Error parsing xyz file {filename}')
             return None
 
+GHOSTS_FOOTER = 'no_com\nno_reorient\n'
 def geom_from_xyz_dimer_ghosts(filename: str, charges: Tuple[int, int, int]) -> Tuple[str, str, str, str] | None:
     with open(filename) as fd:
         lines = fd.readlines() # note preserves \n characters 
@@ -34,10 +35,10 @@ def geom_from_xyz_dimer_ghosts(filename: str, charges: Tuple[int, int, int]) -> 
             ghosts_m1 = '@' + '@'.join(lines[m1_start:m1_start+num_atoms_m1])
             ghosts_m2 = '@' + '@'.join(lines[m2_start:m2_start+num_atoms_m2])
 
-            return f'{charges[1]} 1\n{geometry_m1}--\n{charges[2]} 1\n{ghosts_m2}no_com\nno_reorient', \
-                    f'{charges[2]} 1\n{geometry_m2}--\n{charges[1]} 1\n{ghosts_m1}no_com\nno_reorient', \
-                    f'{charges[1]} 1\n{geometry_m1}no_com\nno_reorient', \
-                    f'{charges[2]} 1\n{geometry_m2}no_com\nno_reorient'
+            return f'{charges[1]} 1\n{geometry_m1}--\n0 1\n{ghosts_m2}{GHOSTS_FOOTER}', \
+                    f'{charges[2]} 1\n{geometry_m2}--\n0 1\n{ghosts_m1}{GHOSTS_FOOTER}', \
+                    f'{charges[1]} 1\n{geometry_m1}{GHOSTS_FOOTER}', \
+                    f'{charges[2]} 1\n{geometry_m2}{GHOSTS_FOOTER}'
         except ValueError:
             print(f'Error parsing xyz file {filename}')
             return None
