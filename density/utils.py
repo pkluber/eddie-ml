@@ -207,6 +207,7 @@ def elfs_to_hdf5(elfs, path, paths):
     species = []
     angles = []
     systems = []
+    positions = []
 
     for s, system in enumerate(elfs):
         for a, atom in enumerate(system):
@@ -220,12 +221,14 @@ def elfs_to_hdf5(elfs, path, paths):
             angles.append(atom.angles)
             species.append(atom.species.encode('ascii','ignore'))
             systems.append(os.path.basename(paths[s]))
+            positions.append(atom.position)
 
     file['value'] = np.array(values)
     file['length'] = np.array(lengths)
     file['species'] = species
     file['angles'] = np.array(angles)
     file['system'] = systems
+    file['position'] = np.array(positions)
     file.flush()
 
 def hdf5_to_elfs(path, species_filter = '', grouped = False,
@@ -267,11 +270,12 @@ def hdf5_to_elfs(path, species_filter = '', grouped = False,
     else:
         current_system = -1
 
-    for value, length, species, angles, system in zip(file['value'][:],
+    for value, length, species, angles, system, position in zip(file['value'][:],
                                                   file['length'][:],
                                                   file['species'][:],
                                                   file['angles'][:],
-                                                  file['system'][:]):
+                                                  file['system'][:],
+                                                  file['position'][:]):
         species = species.astype(str).lower()
         if len(species_filter) > 0 and\
          (not (species in species_filter.lower())):
@@ -298,7 +302,7 @@ def hdf5_to_elfs(path, species_filter = '', grouped = False,
         elif angles_only:
             elfs[system].append(angles)
         else:
-            elfs[system].append(ElF(value[:length], angles, bas, species, np.zeros(3)))
+            elfs[system].append(ElF(value[:length], angles, bas, species, np.zeros(3), position))
 
     if grouped:
         elfs = elfs_grouped

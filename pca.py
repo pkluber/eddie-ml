@@ -1,7 +1,7 @@
 import h5py
 
 # Open the HDF5 file
-with h5py.File('output-neutral.hdf5', 'r') as f:
+with h5py.File('output.hdf5', 'r') as f:
     X = f['value'][:]
 
 from sklearn.preprocessing import StandardScaler
@@ -46,8 +46,8 @@ plt.savefig('cumvar.png')
 X_reduced = pca.transform(X_scaled)[:, :n_components_99]
 print(f'From {X.shape[1]} features to {X_reduced.shape[1]}')
 
-with h5py.File('output-neutral.hdf5', 'r') as f:
-    with h5py.File('output-neutral_pca.hdf5', 'w') as fd:
+with h5py.File('output.hdf5', 'r') as f:
+    with h5py.File('output-pca.hdf5', 'w') as fd:
         fd['value'] = X_reduced
         
         for k in f.keys():

@@ -54,7 +54,7 @@ plt.savefig('compare_energies_violin.png', dpi=300, bbox_inches='tight')
 plt.close()
 
 # Plot residuals
-plt.scatter(np.arange(1, len(diffs)+1), np.array(list(diffs.values())), color='green')
+plt.scatter(np.arange(1, len(diffs)+1), np.array(list(diffs.values())), color='blue')
 plt.axhline(y=0, color='black', linestyle='--')
 plt.axhline(y=1, color='red', linestyle='--')
 plt.axhline(y=-1, color='red', linestyle='--')

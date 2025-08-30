@@ -377,7 +377,7 @@ def get_elf_thread(pos, density, basis, chem_symbol,
 
     values = list(map(atomic_elf, pos, density, basis, chem_symbol))
     elfs = [ElF(v,[0,0,0],b,
-        c,d.unitcell) for v,b,c,d in zip(values, basis, chem_symbol, density)] # no orientation
+        c,d.unitcell,p) for v,b,c,d,p in zip(values, basis, chem_symbol, density, pos)] # no orientation
 
     if not mode == 'none':
         elf_oriented = list(map(orient_elf,i,elfs,[all_positions]*len(elfs),
@@ -521,10 +521,10 @@ def orient_elf(i, elf, all_pos, mode):
     if mode == 'casimir':
         oriented = get_casimir(elf.value)
         oriented = np.asarray(list(oriented.values()))
-        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell)
+        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell, elf.position)
     elif mode == 'neutral':
         oriented = make_real(rotate_tensor(elf.value, np.array(angles), True))
-        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell)
+        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell, elf.position)
     else:
         elf_transformed = transform(elf.value)
         elf_transformed = np.stack([val for val in elf_transformed.values()]).reshape(-1)
@@ -532,7 +532,7 @@ def orient_elf(i, elf, all_pos, mode):
         n = elf.basis[f'n_rad_{elf.species.lower()}']
         ps = power_spectrum(elf_transformed.reshape(1,-1), n_l-1, n, cgs=None)
         oriented = ps.reshape(-1)
-        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell)
+        elf_oriented = ElF(oriented, angles, elf.basis, elf.species, elf.unitcell, elf.position)
     return elf_oriented
 
 def orient_elfs(elfs, atoms, mode):

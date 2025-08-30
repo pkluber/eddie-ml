@@ -11,6 +11,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Generate interaction energies (energies.dat file).')
 parser.add_argument('--newton', type=bool, default=False, help='Whether to use second-order SCF')
+parser.add_argument('--output', type=str, default='energies.dat', help='Output file name')
+parser.add_argument('--hf', type=bool, default=False, help='Whether to just calculate HF energies')
 
 args = parser.parse_args()
 
@@ -27,6 +29,14 @@ def list_contents(tarfile_path: str) -> list[str]:
 
 
 NEUTRAL_SYSTEMS = list_contents(NEUTRAL_TAR)
+
+def hf(geom: str) -> float:
+    psi4.geometry(geom)
+    psi4.set_options({'basis': 'aug-cc-pvqz', 'soscf': args.newton})
+    return psi4.energy('scf')
+
+def hf_int_energy(dimer_geom: str, mono1_geom: str, mono2_geom: str):
+    return hf(dimer_geom) - hf(mono1_geom) - hf(mono2_geom)
 
 def mp2(geom: str) -> tuple[float, float, psi4.core.Wavefunction]:
     psi4.geometry(geom)
@@ -67,7 +77,7 @@ def srs_mp2_int_energy(dimer_geom: str, mono1_geom: str, mono2_geom: str):
     return uncorr_int + c_os * e_os_int + c_ss * e_ss_int 
 
 
-ENERGY_FILE = Path('energies.dat')
+ENERGY_FILE = Path(args.output)
 calculated_systems = []
 if ENERGY_FILE.is_file() and ENERGY_FILE.exists():
     with open(ENERGY_FILE, 'r') as fd:
@@ -96,8 +106,11 @@ for file in data_dir.rglob('*'):
         try:
             print(f'Running calculations for {file.name}', flush=True)
             psi4.core.clean()
-            interaction_energy = srs_mp2_int_energy(dimer_geom, mono1_geom, mono2_geom)
-            with open('energies.dat', 'a+') as fd:
+            if not args.hf:
+                interaction_energy = srs_mp2_int_energy(dimer_geom, mono1_geom, mono2_geom)
+            else:
+                interaction_energy = hf_int_energy(dimer_geom, mono1_geom, mono2_geom)
+            with open(ENERGY_FILE, 'a+') as fd:
                 fd.write(f'{file.name} {interaction_energy}\n')
             print(f'Finished calculations for {file.name}!', flush=True)
 
