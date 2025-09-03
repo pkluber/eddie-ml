@@ -72,11 +72,17 @@ class UEDDIEDataset(Dataset):
         print(self.Y.shape)
 
 
+    def get(self, index, return_name: bool = False):
+        if return_name:
+            return self.X[index, ...], self.E[index, ...], self.Y[index, ...], self.systems[index]
+
+        return self.X[index, ...], self.E[index, ...], self.Y[index, ...]
+    
     def __len__(self):
         return self.X.shape[0]
     
     def __getitem__(self, index):
-        return self.X[index, ...], self.E[index, ...], self.Y[index, ...]
+        return self.get()
 
 def get_dataloader(batch_size: int = 16, shuffle: bool = True):
     dataset = UEDDIEDataset()
