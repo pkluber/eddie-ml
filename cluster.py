@@ -104,7 +104,7 @@ plt.figure(figsize=(8, 6))
 charges = {}
 for x in range(len(X)):
     position = positions[x]
-    charge = get_charge_from_position(position)
+    charge = get_charge_from_position(systems[x], position)
     if charge not in charges:
         charges[charge] = [X_embedded[x]]
     else:
@@ -120,3 +120,18 @@ plt.ylabel('Component 2')
 plt.title('t-SNE Visualization of Features')
 plt.legend()
 plt.savefig('tsne_charge.png', dpi=300, bbox_inches='tight')
+
+# Now do a sixth plot visualizing the correlation energy
+# Parse energies.dat
+energies_hf = {}
+with open('energies_hf.dat') as fd:
+    lines = fd.readlines()
+    for line in lines:
+        xyz, ie = line.split(' ')
+        system_name = xyz[:-4]
+        ie = float(ie)
+    
+        energies_hf[system_name] = ie
+
+y = np.array([energies[system] - energies_hf[system] for system in systems])
+plot(y * 627.509, 'Correlation Energy (kcal/mol)', file_label='_cor')

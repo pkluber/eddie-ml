@@ -98,7 +98,7 @@ def get_charge_from_position(system_name: str, position: np.ndarray) -> int | No
 
     path = path / f'{system_name}.xyz'
 
-    charges = get_charges(path)
+    charges = get_charges(path.name)
 
     with open(path) as fd:
         lines = fd.readlines() # note preserves \n characters 
