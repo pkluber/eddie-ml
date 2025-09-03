@@ -18,7 +18,7 @@ model = UEDDIENetwork(x_sample.shape)
 
 # Loss and stuff
 loss_function = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-7)
+optimizer = optim.Adam(model.parameters())
 
 print('Beginning training!')
 n_epoch = 200
@@ -27,9 +27,7 @@ for epoch in range(n_epoch):
         optimizer.zero_grad()
         
         Y_pred = model(X, E)
-        loss = loss_function(Y_pred, Y)
-        loss = torch.autograd.Variable(loss, requires_grad = True)
-        
+        loss = loss_function(Y_pred, Y) 
         loss.backward()
         optimizer.step()
 

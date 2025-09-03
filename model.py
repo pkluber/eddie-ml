@@ -12,8 +12,8 @@ class ElementMLP(nn.Module):
             nn.Linear(h, 1)
         )
 
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            return self.net(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
 
 class UEDDIENetwork(nn.Module):
     def __init__(self, X_shape):
@@ -25,7 +25,7 @@ class UEDDIENetwork(nn.Module):
         for b in range(E.shape[0]):
             for x in range(E.shape[1]):
                 e = int(E[b, x].item())
-                if e not in self.subnets:
+                if str(e) not in self.subnets:
                     continue
                 per_atom_IE[b, x] = self.subnets[str(e)](X[b,x,...])
 

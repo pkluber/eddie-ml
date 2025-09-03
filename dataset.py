@@ -82,7 +82,7 @@ class UEDDIEDataset(Dataset):
         return self.X.shape[0]
     
     def __getitem__(self, index):
-        return self.get()
+        return self.get(index)
 
 def get_dataloader(batch_size: int = 16, shuffle: bool = True):
     dataset = UEDDIEDataset()
