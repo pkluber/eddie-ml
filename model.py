@@ -29,7 +29,7 @@ class UEDDIENetwork(nn.Module):
                     continue
                 per_atom_IE[b, x] = self.subnets[str(e)](X[b,x,...])
 
-        return per_atom_IE.sum(dim=1)
+        return -per_atom_IE.sum(dim=1)
 
 
 # Example usage

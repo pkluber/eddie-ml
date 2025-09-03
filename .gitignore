@@ -154,3 +154,6 @@ psi.*
 
 # PyTorch model .pt
 model.pt
+
+# NumPy array files
+*.npy
