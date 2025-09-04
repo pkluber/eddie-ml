@@ -18,13 +18,14 @@ dataloader = dataset.get_dataloader(batch_size=1)
 # Initialize model
 x_sample, _, _ = next(iter(dataloader))
 model = UEDDIENetwork(x_sample.shape)
+model.to(device)
 
 # Loss and stuff
 loss_function = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=3e-6)
 
 print(f'Beginning training using device={device}!', flush=True)
-n_epoch = 400
+n_epoch = 2000
 losses = []
 for epoch in range(n_epoch):
     total_loss = 0
