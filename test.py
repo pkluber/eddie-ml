@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import random
 
-model = torch.load('model.pt')
+model = torch.load('model.pt', weights_only=False)
 model.eval()
 
 criterion = nn.MSELoss()

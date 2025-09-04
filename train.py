@@ -21,10 +21,10 @@ model = UEDDIENetwork(x_sample.shape)
 
 # Loss and stuff
 loss_function = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-6)
+optimizer = optim.Adam(model.parameters(), lr=3e-6)
 
 print(f'Beginning training using device={device}!', flush=True)
-n_epoch = 1000
+n_epoch = 400
 losses = []
 for epoch in range(n_epoch):
     total_loss = 0
@@ -44,5 +44,5 @@ for epoch in range(n_epoch):
     if epoch % 5 == 0:
         print(f'Epoch {epoch}, loss: {loss.item()}', flush=True)
 
-torch.save(model, 'model.pt')
+torch.save(model, 'model.pt', weights_only=False)
 np.save('losses.npy', np.array(losses))
