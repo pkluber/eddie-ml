@@ -22,7 +22,7 @@ model.to(device)
 
 # Loss and stuff
 loss_function = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=3e-6)
+optimizer = optim.SGD(model.parameters(), lr=3e-6, momentum=0.9, nesterov=True)
 
 print(f'Beginning training using device={device}!', flush=True)
 n_epoch = 2000
