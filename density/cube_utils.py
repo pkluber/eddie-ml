@@ -77,34 +77,6 @@ def dimerxyz_to_Mol(filepath, basis='cc-pVTZ', charge=0, spin=0):
 
     return mol
 
-def get_charges(xyzfile, SSIloc='path/to/SSI_unCP/files'):
-    '''
-    Assigns total charge, mono1, and mono2 charges for systems in the SSI database for xyzfiles.
-    '''
-    basename = os.path.basename(xyzfile)
-    if str(basename).startswith('S66'):
-        return 0,0,0
-    elif str(basename).startswith('C'):
-        return 1,-1,0
-    else:
-        systemname = basename.split(r'-d')[0]
-        monomers = sorted(glob(os.path.join(SSIloc, '{}*'.format(systemname))))
-
-        if len(monomers) != 2:
-            raise ValueError("Check the number of monomers for {}".format(basename))
-
-        charges = []
-
-        for monomer in monomers:
-            with open(monomer) as f:
-                lines = f.readlines()
-                charges.append(lines[1].split(" ")[0])
-
-        monoAcharge = int(charges[0])
-        monoBcharge = int(charges[1])
-        tot_charge = int(charges[0]) + int(charges[1])
-        return monoAcharge, monoBcharge, tot_charge
-
 def write_single_cube(filename, resolution=0.1, write_cube=True, charge=0):
     molecule = dimerxyz_to_Mol(filename)
     mf = scf.RHF(molecule)
@@ -149,10 +121,8 @@ def dimer_cube_difference(filename, method, resolution=0.1, extension=5.0, level
     Choice of HF, MP2, or PBE0 density with a cc-pVTZ basis set.
     The default resolution is set to 0.1 Bohr with a 5.0 Angstrom extension on all sides.
     '''
-    if charges is None:
-        mon1_charge, mon2_charge, tot_charge = get_charges(filename)
-    else: 
-        mon1_charge, mon2_charge, tot_charge = charges 
+    mon1_charge, mon2_charge, tot_charge = charges 
+    
     dimer = dimerxyz_to_Mol(filename, charge=tot_charge)
     mono1 = xyz_to_Mol(filename, n=0, charge=mon1_charge)
     mono2 = xyz_to_Mol(filename, n=1, charge=mon2_charge)

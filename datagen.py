@@ -3,7 +3,7 @@ import tarfile
 import os
 
 from density import cube_utils
-from utils import get_charges
+from density.utils import get_charges
 
 import argparse
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from utils import get_charges, geom_from_xyz_dimer_ghosts
+from utils import geom_from_xyz_dimer_ghosts
+from density.utils import get_charges
 
 import psi4 
 
