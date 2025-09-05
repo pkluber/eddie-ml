@@ -17,6 +17,8 @@ from .real_space import get_elfs_oriented, orient_elfs
 from .geom import make_complex, rotate_tensor
 from .serial_view import serial_view
 
+from ..utils import get_charge_from_position
+
 def get_view(profile = 'default', n = -1):
     """
     Load ipyparallel balanced_view
@@ -208,6 +210,7 @@ def elfs_to_hdf5(elfs, path, paths):
     angles = []
     systems = []
     positions = []
+    charges = []
 
     for s, system in enumerate(elfs):
         for a, atom in enumerate(system):
@@ -222,6 +225,7 @@ def elfs_to_hdf5(elfs, path, paths):
             species.append(atom.species.encode('ascii','ignore'))
             systems.append(os.path.basename(paths[s]))
             positions.append(atom.position)
+            charges.append(get_charge_from_position(os.path.basename(paths[s]), atom.position))
 
     file['value'] = np.array(values)
     file['length'] = np.array(lengths)
@@ -229,6 +233,7 @@ def elfs_to_hdf5(elfs, path, paths):
     file['angles'] = np.array(angles)
     file['system'] = systems
     file['position'] = np.array(positions)
+    file['charge'] = np.array(charges)
     file.flush()
 
 def hdf5_to_elfs(path, species_filter = '', grouped = False,
