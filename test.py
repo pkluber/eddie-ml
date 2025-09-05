@@ -22,6 +22,10 @@ with torch.no_grad():
     y = y.unsqueeze(dim=0)
 
     y_pred = model(x, e)
-    print(f'Predicted IE: {y_pred.item()}\nActual IE: {y.item()}')
+
+    y = y.item() * 627.509
+    y_pred = y_pred.item() * 627.509
+
+    print(f'Predicted interaction energy: {y_pred:.1f} kcal/mol\nActual interaction energy: {y:.1f} kcal/mol')
 
 

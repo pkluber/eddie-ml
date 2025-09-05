@@ -45,5 +45,5 @@ for epoch in range(n_epoch):
     if epoch % 5 == 0:
         print(f'Epoch {epoch}, loss: {loss.item()}', flush=True)
 
-torch.save(model, 'model.pt', weights_only=False)
+torch.save(model, 'model.pt')
 np.save('losses.npy', np.array(losses))
