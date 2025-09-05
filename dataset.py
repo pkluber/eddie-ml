@@ -20,7 +20,7 @@ class UEDDIEDataset(Dataset):
             X = f['value'][:]
             S = [system.decode('ascii') for system in f['system'][:]]
             E = [element.decode('ascii') for element in f['species'][:]]
-            C = [int(round(charge) for charge in f['charge'][:]]
+            C = [int(round(charge)) for charge in f['charge'][:]]
 
         self.systems = []
 

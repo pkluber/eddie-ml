@@ -7,6 +7,7 @@ with h5py.File('output.hdf5', 'r') as f:
     
     X = f['system'][:]
     species = f['species'][:]
+    charges = f['charge'][:]
     positions = f['position'][:]
 
 #with h5py.File('output_pca.hdf5', 'r') as fd:
@@ -29,4 +30,5 @@ print(list(energies.items())[0])
 
 test_str = X[0].decode('ascii')
 test_species = species[0].decode('ascii')
-print(test_str, test_species, energies[test_str])
+test_charge = charges[0]
+print(test_str, test_species, test_charge, energies[test_str])
