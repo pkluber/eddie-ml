@@ -36,7 +36,7 @@ class UEDDIENetwork(nn.Module):
                 c = int(C[b, x].item())
                 if str(e) not in self.elem_subnets:
                     continue
-                per_atom_IE[b, x] = self.elem_subnets[str(e)](X[b,x,...]) * self.charge_subnets[str(c)](X[b,x,...])
+                per_atom_IE[b, x] = self.elem_subnets[str(e)](X[b,x,...]) * (1 + self.charge_subnets[str(c)](X[b,x,...]))
 
         return -per_atom_IE.sum(dim=1)
 
