@@ -33,20 +33,12 @@ class UEDDIENetwork(nn.Module):
         for b in range(E.shape[0]):
             for x in range(E.shape[1]):
                 e = int(E[b, x].item())
+                c = int(C[b, x].item())
                 if str(e) not in self.elem_subnets:
                     continue
-                per_atom_IE[b, x] = self.elem_subnets[str(e)](X[b,x,...])
+                per_atom_IE[b, x] = self.elem_subnets[str(e)](X[b,x,...]) * self.charge_subnets[str(c)](X[b,x,...])
 
-        per_atom_CF = torch.zeros(X.shape[:-1], device=X.device)
-        for b in range(C.shape[0]):
-            for x in range(C.shape[1]):
-                c = C[b, x].item()
-                if str(c) not in self.charge_subnets:
-                    continue
-
-                per_atom_CF = self.charge_subnets[str(c)](X[b,x,...])
-
-        return -per_atom_IE.sum(dim=1) * per_atom_CF.sum(dim=1)
+        return -per_atom_IE.sum(dim=1)
 
 
 # Example usage

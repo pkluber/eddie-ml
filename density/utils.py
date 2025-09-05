@@ -18,6 +18,7 @@ from .geom import make_complex, rotate_tensor
 from .serial_view import serial_view
 
 from typing import Tuple
+from pathlib import Path
 
 POS_CHARGED_AMINOS = ['ARG', 'LYS']
 NEG_CHARGED_AMINOS = ['ASP', 'GLU']
