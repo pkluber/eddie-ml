@@ -17,6 +17,8 @@ from .real_space import get_elfs_oriented, orient_elfs
 from .geom import make_complex, rotate_tensor
 from .serial_view import serial_view
 
+from typing import Tuple
+
 POS_CHARGED_AMINOS = ['ARG', 'LYS']
 NEG_CHARGED_AMINOS = ['ASP', 'GLU']
 
