@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import dataset
-from model import UEDDIENetwork
+from model import UEDDIEMoE, UEDDIENetwork
 from pathlib import Path
 
 # Needed for 64-bit precision
@@ -22,7 +22,7 @@ model.to(device)
 
 # Loss and stuff
 loss_function = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=3e-6)
+optimizer = optim.AdamW(model.parameters(), lr=1e-5)
 
 print(f'Beginning training using device={device}!', flush=True)
 n_epoch = 2000

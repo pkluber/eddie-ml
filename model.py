@@ -53,7 +53,7 @@ class UEDDIENetwork(nn.Module):
         # Apply charge scaling subnets
         for c in self.charge_subnets.keys():
             mask, X_masked = create_mask(X, C == int(c))
-            per_atom_IE = torch.where(mask[:, :, 0], per_atom_IE * (1 + self.charge_subnets[c](X_masked)), per_atom_IE)
+            per_atom_IE = torch.where(mask[:, :, 0], per_atom_IE * torch.exp(self.charge_subnets[c](X_masked)), per_atom_IE)
 
         return -per_atom_IE.sum(dim=1)
 
@@ -85,6 +85,8 @@ if __name__ == '__main__':
     model = UEDDIENetwork(X.shape)
     y = model(X, E, C)
     print(f'Input shape: {X.shape}, {E.shape}, {C.shape}\nOutput shape: {y.shape}\nExpected shape: {Y.shape}')
+
+    print(f'UEDDIENetwork has {sum(param.numel() for param in model.parameters())} parameters')
 
     moe_model = UEDDIEMoE(X.shape)
     y = moe_model(X, E, C)
