@@ -70,7 +70,9 @@ import torch
 from dataset import UEDDIEDataset
 from model import UEDDIENetwork
 
-model = torch.load('model.pt', weights_only=False)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model = torch.load('model.pt', weights_only=False, map_location=device)
 model.eval()
 
 dataset = UEDDIEDataset()
@@ -78,12 +80,13 @@ dataset = UEDDIEDataset()
 xs_model = []
 ys_model = []
 with torch.no_grad():
-    for x, e, y, name in [dataset.get(x, return_name=True) for x in range(len(dataset))]:
+    for x, e, c, y, name in [dataset.get(x, return_name=True) for x in range(len(dataset))]:
         if name.startswith(args.input):
-            x = x.unsqueeze(dim=0)
-            e = e.unsqueeze(dim=0)
+            x = x.unsqueeze(0)
+            e = e.unsqueeze(0)
+            c = c.unsqueeze(0)
 
-            y_pred = model(x, e)
+            y_pred = model(x, e, c)
             
             ie_model = y_pred.item() * 627.509
             

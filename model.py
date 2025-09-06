@@ -45,7 +45,7 @@ class UEDDIENetwork(nn.Module):
         # Atomistic approximation
         per_atom_IE = torch.zeros(X.shape[:-1], device=X.device)
 
-        # Apply elementwise subnets
+        # Apply element subnets
         for e in self.elem_subnets.keys():
             mask, X_masked = create_mask(X, E == int(e))
             per_atom_IE = torch.where(mask[:, :, 0], self.elem_subnets[e](X_masked), per_atom_IE)
