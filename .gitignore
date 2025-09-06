@@ -157,3 +157,6 @@ psi.*
 
 # NumPy array files
 *.npy
+
+# models folder
+models
