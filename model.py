@@ -32,7 +32,7 @@ def create_mask(X: torch.Tensor, mask: torch.Tensor) -> Tuple[torch.Tensor, torc
 
 
 class UEDDIENetwork(nn.Module):
-    def __init__(self, X_shape):
+    def __init__(self, X_shape: tuple):
         super().__init__()
         self.elem_subnets = nn.ModuleDict({str(e): FunnelMLP(X_shape[2]) for e in range(4)})
         self.charge_subnets = nn.ModuleDict({str(c): FunnelMLP(X_shape[2]) for c in range(-1, 2)})
@@ -57,6 +57,24 @@ class UEDDIENetwork(nn.Module):
 
         return -per_atom_IE.sum(dim=1)
 
+class UEDDIEMoE(nn.Module):
+    def __init__(self, X_shape: tuple, num_experts: int = 8):
+        super().__init__()
+        self.experts = nn.ModuleList([UEDDIENetwork(X_shape) for _ in range(num_experts)])
+        self.gating = nn.Sequential(
+            nn.Linear(X_shape[-1], num_experts), 
+            nn.Softmax(dim=-1)
+        )
+
+    def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
+        # Apply atomistic decomposition to gating
+        gate_outputs = self.gating(X).sum(dim=1)
+
+        expert_outputs = torch.stack([expert(X, E, C) for expert in self.experts], dim=-1)
+
+        return (gate_outputs * expert_outputs).sum(dim=-1)
+
+        
 
 # Example usage
 if __name__ == '__main__':
@@ -67,3 +85,7 @@ if __name__ == '__main__':
     model = UEDDIENetwork(X.shape)
     y = model(X, E, C)
     print(f'Input shape: {X.shape}, {E.shape}, {C.shape}\nOutput shape: {y.shape}\nExpected shape: {Y.shape}')
+
+    moe_model = UEDDIEMoE(X.shape)
+    y = moe_model(X, E, C)
+    print(f'MoE output shape: {y.shape}')
