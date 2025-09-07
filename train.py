@@ -65,6 +65,6 @@ with torch.no_grad():
         loss = loss_function(Y_pred, Y)
         test_loss += loss.item()
 
-print(f'Test average loss: {test_loss / len(test_dataset)})
+print(f'Test average loss: {test_loss / len(test_dataset)}')
     
 
