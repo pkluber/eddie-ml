@@ -154,7 +154,7 @@ def get_dataloader(batch_size: int = 16, shuffle: bool = True):
     dataset = UEDDIEDataset()
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
-def get_train_test_datasets(train_ratios: dict[str, float] | None = None):
+def get_train_validation_test_datasets(train_ratios: dict[str, float] | None = None):
     if train_ratios is None:
         train_ratios = {'IL174': 0.9, 'extraILs': 0.9, 'S66': 0.8, 'SSI': 0.8}
 
@@ -163,16 +163,17 @@ def get_train_test_datasets(train_ratios: dict[str, float] | None = None):
     train_dataset = UEDDIESubset(base_dataset, train_ratios)
     
     subsets = get_datasets_list()
-    test_ratios = {}
+    test_and_val_ratios = {}
     for subset in subsets:
         if subset not in train_ratios:
-            test_ratios[subset] = 1.0
+            test_and_val_ratios[subset] = 0.5
         else:
-            test_ratios[subset] = 1.0 - train_ratios[subset]
+            test_and_val_ratios[subset] = (1.0 - train_ratios[subset]) / 2
 
-    test_dataset = UEDDIESubset(base_dataset, test_ratios)
+    validation_dataset = UEDDIESubset(base_dataset, test_and_val_ratios)
+    test_dataset = UEDDIESubset(base_dataset, test_and_val_ratios)
 
-    return train_dataset, test_dataset
+    return train_dataset, validation_dataset, test_dataset
 
 
 if __name__ == '__main__':
