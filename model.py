@@ -5,18 +5,40 @@ import numpy as np
 
 from typing import Tuple
 
+def create_funnel(h: int, depth: int):
+    dims = []
+    for x in range(depth):
+        h_in = int(round(h / depth * (depth - x)))
+        h_out = int(round(h / depth * (depth - x - 1))) if x != depth - 1 else 1
+        dims.append((h_in, h_out))
+
+    return dims
+
+def create_wide_funnel(h: int, depth: int):
+    dims = []
+
+    linspace = np.linspace(h, h/2, depth)
+    linspace = linspace.astype(int)
+    for x in range(depth):
+        h_in = linspace[x]
+        if x == depth - 1:
+            h_out = 1
+        else:
+            h_out = linspace[x+1]
+
+        dims.append((h_in, h_out))
+
+    return dims
+
 class FunnelMLP(nn.Module):
     def __init__(self, in_dim: int, h: int = 128, depth: int = 10):
         super().__init__()
 
         # Create a funnel {depth} long
         layers = [nn.Linear(in_dim, h)]
-        for x in range(depth):
+        funnel = create_wide_funnel(h, depth)
+        for h_in, h_out in funnel:
             layers.append(nn.Softplus())
-            
-            h_in = int(round(h / depth * (depth - x)))
-            h_out = int(round(h / depth * (depth - x - 1))) if x != depth - 1 else 1
-
             layers.append(nn.Linear(h_in, h_out))
 
         self.net = nn.Sequential(*layers)
