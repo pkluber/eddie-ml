@@ -39,7 +39,11 @@ scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 print(f'Beginning training using device={device}!', flush=True)
 
 train_losses = []
-last_lr = 0
+
+# Early stopping
+early_stopping_patience = 15
+best_val_loss = float('inf')
+epochs_no_improve = 0
 
 n_epoch = 2000
 for epoch in range(n_epoch):
@@ -63,6 +67,7 @@ for epoch in range(n_epoch):
     val_loss = 0
     with torch.no_grad():
         for X, E, C, Y in validation_dataloader:
+            X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
             Y_pred = model(X, E, C)
             loss = loss_function(Y_pred, Y) 
             val_loss += loss.item()
@@ -71,14 +76,24 @@ for epoch in range(n_epoch):
 
     scheduler.step(val_loss)
 
-    if epoch % 5 == 0:
-        print(f'Epoch {epoch}, average loss: {train_losses[-1]}, LR: {optimizer.param_groups[0]["lr"]}', flush=True)
-
-    if epoch % 20 == 0:
+    # Check for early stopping
+    if val_loss < best_val_loss - 1e-6: # 1e-6 of tolerance
+        best_val_loss = val_loss
+        epochs_no_improve = 0
         torch.save(model, 'model.pt')
-        np.save('losses.npy', np.array(train_losses))
-            
+    else:
+        epochs_no_improve += 1
 
+    if epochs_no_improve >= early_stopping_patience:
+        print(f'Early stopping at epoch {epoch}')
+        break
+
+    # Output
+    if epoch % 5 == 0:
+        print(f'Epoch {epoch}, train loss: {train_losses[-1]}, val loss: {val_loss}, LR: {optimizer.param_groups[0]["lr"]}', flush=True)
+        np.save('losses.npy', np.array(train_losses))
+
+#TODO more for testing
 test_loss = 0
 with torch.no_grad():
     for X, E, C, Y in test_dataloader:
