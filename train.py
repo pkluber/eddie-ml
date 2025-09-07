@@ -34,14 +34,14 @@ model.to(device)
 # Loss and stuff
 loss_function = nn.MSELoss()
 optimizer = optim.AdamW(model.parameters(), lr=1e-5)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20)
 
 print(f'Beginning training using device={device}!', flush=True)
 
 train_losses = []
 
 # Early stopping
-early_stopping_patience = 25
+early_stopping_patience = 40
 best_val_loss = float('inf')
 epochs_no_improve = 0
 
@@ -77,7 +77,7 @@ for epoch in range(n_epoch):
     scheduler.step(val_loss)
 
     # Check for early stopping
-    if val_loss < best_val_loss - 1e-6: # 1e-6 of tolerance
+    if val_loss < best_val_loss - 1e-7: # 1e-7 of tolerance
         best_val_loss = val_loss
         epochs_no_improve = 0
         torch.save(model, 'model.pt')
