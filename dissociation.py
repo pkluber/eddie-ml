@@ -79,6 +79,8 @@ dataset = UEDDIEDataset()
 
 xs_model = []
 ys_model = []
+min_ie = 0
+min_sys = ''
 with torch.no_grad():
     for x, e, c, y, name in [dataset.get(x, return_name=True) for x in range(len(dataset))]:
         if name.startswith(args.input):
@@ -89,9 +91,14 @@ with torch.no_grad():
             y_pred = model(x, e, c)
             
             ie_model = y_pred.item() * 627.509
+            if ie_model < min_ie:
+                min_ie = ie_model
+                min_sys = name
             
             xs_model.append(get_dist(name))
             ys_model.append(ie_model)
+
+print(f'Min IE system is {min_sys} with {min_ie} kcal/mol')
 
 xs_model = np.array(xs_model)
 ys_model = np.array(ys_model)

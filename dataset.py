@@ -156,7 +156,7 @@ def get_dataloader(batch_size: int = 16, shuffle: bool = True):
 
 def get_train_test_datasets(train_ratios: dict[str, float] | None = None):
     if train_ratios is None:
-        train_ratios = {'IL174': 0.8, 'extraILs': 0.8, 'S66': 0.5, 'SSI': 0.5}
+        train_ratios = {'IL174': 0.9, 'extraILs': 0.9, 'S66': 0.8, 'SSI': 0.8}
 
     base_dataset = UEDDIEDataset()
     
