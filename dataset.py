@@ -4,6 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import h5py
 
+from utils import get_dataset, get_datasets_list
+from random import shuffle
+
 def pad(nested_list, max_size, default):
     results = []
     for l in nested_list:
@@ -85,13 +88,92 @@ class UEDDIEDataset(Dataset):
     
     def __len__(self):
         return self.X.shape[0]
-    
+
     def __getitem__(self, index):
         return self.get(index)
+
+class UEDDIESubset(UEDDIEDataset):
+    def __init__(self, dataset: UEDDIEDataset, subset_ratios: dict[str, float]):
+        self.dataset = dataset
+        self.subset_ratios = subset_ratios
+        
+        # Count data from each dataset
+        counts = {}
+        for x in range(len(dataset)):
+            _, _, _, _, name = dataset.get(x, return_name = True) 
+            subset = get_dataset(name)
+            if subset in subset_ratios.keys():
+                if subset not in counts:
+                    counts[subset] = 1
+                else:
+                    counts[subset] += 1
+        
+        # Create counts to pull from
+        for subset in counts:
+            if subset not in subset_ratios:
+                del counts[subset]
+                continue
+            
+            counts[subset] = int(counts[subset] * subset_ratios[subset])
+
+        # Randomly access underlying dataset to form data
+        self.X = []
+        self.E = []
+        self.C = []
+        self.Y = []
+        self.systems = []
+
+        indices = list(range(len(dataset)))
+        shuffle(indices)
+        for x in indices:
+            X, E, C, Y, system = dataset.get(x, return_name = True)
+            subset = get_dataset(system)
+            if subset not in counts:
+                continue
+            
+            self.X.append(X)
+            self.E.append(E)
+            self.C.append(C)
+            self.Y.append(Y)
+            self.systems.append(system)
+
+            new_count = counts[subset] - 1
+            if new_count == 0:
+                del counts[subset]
+                continue
+
+            counts[subset] = new_count
+        
+        self.X = torch.stack(self.X)
+        self.E = torch.stack(self.E)
+        self.C = torch.stack(self.C)
+        self.Y = torch.stack(self.Y)
+        
 
 def get_dataloader(batch_size: int = 16, shuffle: bool = True):
     dataset = UEDDIEDataset()
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+def get_train_test_datasets(train_ratios: dict[str, float] | None = None):
+    if train_ratios is None:
+        train_ratios = {'IL174': 0.8, 'extraILs': 0.8, 'S66': 0.5, 'SSI': 0.5}
+
+    base_dataset = UEDDIEDataset()
+    
+    train_dataset = UEDDIESubset(base_dataset, train_ratios)
+    
+    subsets = get_datasets_list()
+    test_ratios = {}
+    for subset in subsets:
+        if subset not in train_ratios:
+            test_ratios[subset] = 1.0
+        else:
+            test_ratios[subset] = 1.0 - train_ratios[subset]
+
+    test_dataset = UEDDIESubset(base_dataset, test_ratios)
+
+    return train_dataset, test_dataset
+
 
 if __name__ == '__main__':
     dataloader = get_dataloader()
@@ -106,6 +188,10 @@ if __name__ == '__main__':
     print(f'e dtype: {e_sample.dtype}')
     print(f'c dtype: {c_sample.dtype}')
     print(f'y dtype: {y_sample.dtype}')
+
+    train_dataloader, test_dataloader = get_train_test_dataloaders()
+    print(f'Train dataloader len={len(train_dataloader)}\nTest dataloader len={len(test_dataloader)}')
+
 
 
 

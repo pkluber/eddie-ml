@@ -32,10 +32,10 @@ def create_mask(X: torch.Tensor, mask: torch.Tensor) -> Tuple[torch.Tensor, torc
 
 
 class UEDDIENetwork(nn.Module):
-    def __init__(self, X_shape: tuple):
+    def __init__(self, X_shape: tuple, elem_depth: int = 10, charge_depth: int = 10):
         super().__init__()
-        self.elem_subnets = nn.ModuleDict({str(e): FunnelMLP(X_shape[2]) for e in range(4)})
-        self.charge_subnets = nn.ModuleDict({str(c): FunnelMLP(X_shape[2]) for c in range(-1, 2)})
+        self.elem_subnets = nn.ModuleDict({str(e): FunnelMLP(X_shape[2], depth=elem_depth) for e in range(4)})
+        self.charge_subnets = nn.ModuleDict({str(c): FunnelMLP(X_shape[2], depth=charge_depth) for c in range(-1, 2)})
 
     def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
         # Sanitize E, C, make sure they're int

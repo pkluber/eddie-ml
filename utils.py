@@ -14,6 +14,9 @@ def get_dataset(filename: str) -> str:
     else:
         return 'Unknown'
 
+def get_datasets_list():
+    return ['S66', 'SSI', 'IL174', 'extraILs']
+
 def geom_from_xyz_dimer(filename: str, charges: Tuple[int, int, int]) -> Tuple[str, str, str] | None:
     with open(filename) as fd:
         lines = fd.readlines() # note preserves \n characters 
