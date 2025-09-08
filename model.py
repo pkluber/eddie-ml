@@ -141,18 +141,18 @@ class TransformerBlock(nn.Module):
         return x
 
 class FinetunerSubnet(nn.Module):
-    def __init__(self, X_shape: tuple, depth: int = 1):
+    def __init__(self, X_shape: tuple, depth: int = 2):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Sequential(*[TransformerBlock(X.shape[-2], 128) for _ in range(depth)]),
-            nn.Linear(X.shape[-2], 1),
+            nn.Sequential(*[TransformerBlock(X_shape[-1], 128) for _ in range(depth)]),
+            nn.Linear(X_shape[-1], 1),
         )
     
     def forward(self, X: torch.Tensor):
         return self.net(X).squeeze(-1)
 
 class UEDDIEFinetuner(nn.Module):
-    def __init__(self, X_shape: tuple, subnet_depth: int = 1):
+    def __init__(self, X_shape: tuple, subnet_depth: int = 2):
         super().__init__()
         self.subnets = nn.ModuleDict(
             {f'{str(e)},{str(c)}': FinetunerSubnet(X_shape, depth=subnet_depth)
@@ -170,8 +170,6 @@ class UEDDIEFinetuner(nn.Module):
         for e in range(4):
             for c in range(-1, 2):
                 mask, X_masked = create_mask(X, torch.logical_and((E == e), (C == c)))
-                print(mask.shape)
-                print(X_masked.shape)
                 per_atom_finetune = torch.where(mask[:, :, 0], self.subnets[f'{str(e)},{str(c)}'](X_masked), per_atom_finetune)
 
         return -per_atom_finetune.sum(dim=1)

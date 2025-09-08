@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import numpy as np
 import dataset
-from model import UEDDIEMoE, UEDDIENetwork
+from model import UEDDIEMoE, UEDDIENetwork, UEDDIEFinetuner
 from pathlib import Path
 
 # Needed for 64-bit precision
@@ -31,9 +31,12 @@ x_sample, _, _, _ = next(iter(train_dataloader))
 model = UEDDIENetwork(x_sample.shape)
 model.to(device)
 
+finetuner = UEDDIEFinetuner(x_sample.shape)
+model.to(device)
+
 # Loss and stuff
 loss_function = nn.MSELoss()
-optimizer = optim.AdamW(model.parameters(), lr=1e-5)
+optimizer = optim.AdamW(list(model.parameters()) + list(finetuner.parameters()), lr=1e-5)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=40)
 
 print(f'Beginning training using device={device}!', flush=True)
@@ -54,7 +57,7 @@ for epoch in range(n_epoch):
         X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
         optimizer.zero_grad()
         
-        Y_pred = model(X, E, C)
+        Y_pred = model(X, E, C) + finetuner(X, E, C)
         loss = loss_function(Y_pred, Y) 
         loss.backward()
         optimizer.step()
