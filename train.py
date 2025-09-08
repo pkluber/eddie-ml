@@ -57,7 +57,10 @@ for epoch in range(n_epoch):
         X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
         optimizer.zero_grad()
         
-        Y_pred = model(X, E, C) + finetuner(X, E, C)
+        if epoch < n_epoch // 2: # For 1-1000 epochs train base model
+            Y_pred = model(X, E, C)
+        else: # For 1000-2000 epochs train finetuner 
+            Y_pred = model(X, E, C).detach() + finetuner(X, E, C)
         loss = loss_function(Y_pred, Y) 
         loss.backward()
         optimizer.step()
@@ -78,18 +81,6 @@ for epoch in range(n_epoch):
     val_loss /= len(validation_dataloader)
 
     scheduler.step(val_loss)
-
-    # Check for early stopping
-    if val_loss < best_val_loss - 1e-7: # 1e-7 of tolerance
-        best_val_loss = val_loss
-        epochs_no_improve = 0
-        torch.save(model, 'model.pt')
-    else:
-        epochs_no_improve += 1
-
-    if epochs_no_improve >= early_stopping_patience:
-        print(f'Early stopping at epoch {epoch}')
-        break
 
     # Output
     if epoch % 5 == 0:
