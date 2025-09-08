@@ -94,7 +94,7 @@ test_loss = 0
 with torch.no_grad():
     for X, E, C, Y in test_dataloader:
         X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
-        Y_pred = model(X, E, C)
+        Y_pred = model(X, E, C) + finetuner(X, E, C)
         loss = loss_function(Y_pred, Y)
         test_loss += loss.item()
 
