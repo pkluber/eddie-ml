@@ -131,16 +131,6 @@ class TransformerBlock(nn.Module):
         )
         self.norm2 = nn.LayerNorm(embed_dim)
 
-        self._init_weights()
-
-    # Initialize weights small for the finetuner
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight, gain=0.01)
-
-        nn.init.zeros_(self.ff[2].weight)
-
     def forward(self, x):
         # Self-attention + residual + norm
         attn_out = self.attn(x)
@@ -160,9 +150,9 @@ class FinetunerSubnet(nn.Module):
             nn.Linear(X_shape[-1], 1),
         )
         self.net.to(device)
-    
+ 
     def forward(self, X: torch.Tensor):
-        return self.net(X).squeeze(-1)
+        return self.net(X).squeeze(-1) / 1000000
 
 class UEDDIEFinetuner(nn.Module):
     def __init__(self, device: torch.device, X_shape: tuple, subnet_depth: int = 2):
@@ -205,8 +195,9 @@ if __name__ == '__main__':
     y = moe_model(X, E, C)
     print(f'MoE output shape: {y.shape}')
 
-    finetuner = UEDDIEFinetuner(X.shape)
+    finetuner = UEDDIEFinetuner(torch.device('cpu'), X.shape)
     y = finetuner(X, E, C)
+    print(y)
     print(f'Finetuner output shape: {y.shape}')
     print(f'UEDDIEFinetuner has {sum(param.numel() for param in finetuner.parameters())} parameters')
 

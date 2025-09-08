@@ -81,6 +81,8 @@ for epoch in range(n_epoch):
     if epoch % 5 == 0:
         print(f'Epoch {epoch}, train loss: {train_losses[-1]}, val loss: {val_loss}, LR: {optimizer.param_groups[0]["lr"]}', flush=True)
         np.save('losses.npy', np.array(train_losses))
+        torch.save(model, 'model.pt')
+        torch.save(finetuner, 'finetuner.pt')
 
 #TODO more for testing
 test_loss = 0
