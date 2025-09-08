@@ -69,7 +69,12 @@ for epoch in range(n_epoch):
     with torch.no_grad():
         for X, E, C, Y in validation_dataloader:
             X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
-            Y_pred = model(X, E, C)
+
+            if epoch < n_epoch // 2:
+                Y_pred = model(X, E, C)
+            else:
+                Y_pred = model(X, E, C).detach() + finetuner(X, E, C)
+
             loss = loss_function(Y_pred, Y) 
             val_loss += loss.item()
 
