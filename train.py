@@ -37,7 +37,7 @@ model.to(device)
 # Loss and stuff
 loss_function = nn.MSELoss()
 optimizer = optim.AdamW(list(model.parameters()) + list(finetuner.parameters()), lr=1e-5)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=40)
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=60)
 
 print(f'Beginning training using device={device}!', flush=True)
 
