@@ -31,7 +31,7 @@ x_sample, _, _, _ = next(iter(train_dataloader))
 model = UEDDIENetwork(x_sample.shape)
 model.to(device)
 
-finetuner = UEDDIEFinetuner(x_sample.shape)
+finetuner = UEDDIEFinetuner(device, x_sample.shape)
 model.to(device)
 
 # Loss and stuff

@@ -118,9 +118,11 @@ class SelfAttention(nn.Module):
         return out
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_dim: int, ff_hidden_dim: int):
+    def __init__(self, device: torch.device, embed_dim: int, ff_hidden_dim: int):
         super().__init__()
         self.attn = SelfAttention(embed_dim)
+        self.attn.to(device)
+
         self.norm1 = nn.LayerNorm(embed_dim)
         self.ff = nn.Sequential(
             nn.Linear(embed_dim, ff_hidden_dim),
@@ -128,6 +130,16 @@ class TransformerBlock(nn.Module):
             nn.Linear(ff_hidden_dim, embed_dim),
         )
         self.norm2 = nn.LayerNorm(embed_dim)
+
+        self._init_weights()
+
+    # Initialize weights small for the finetuner
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight, gain=0.01)
+
+        nn.init.zeros_(self.ff[2].weight)
 
     def forward(self, x):
         # Self-attention + residual + norm
@@ -141,23 +153,25 @@ class TransformerBlock(nn.Module):
         return x
 
 class FinetunerSubnet(nn.Module):
-    def __init__(self, X_shape: tuple, depth: int = 2):
+    def __init__(self, device: torch.device, X_shape: tuple, depth: int = 2):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Sequential(*[TransformerBlock(X_shape[-1], 128) for _ in range(depth)]),
+            nn.Sequential(*[TransformerBlock(device, X_shape[-1], 128) for _ in range(depth)]),
             nn.Linear(X_shape[-1], 1),
         )
+        self.net.to(device)
     
     def forward(self, X: torch.Tensor):
         return self.net(X).squeeze(-1)
 
 class UEDDIEFinetuner(nn.Module):
-    def __init__(self, X_shape: tuple, subnet_depth: int = 2):
+    def __init__(self, device: torch.device, X_shape: tuple, subnet_depth: int = 2):
         super().__init__()
         self.subnets = nn.ModuleDict(
-            {f'{str(e)},{str(c)}': FinetunerSubnet(X_shape, depth=subnet_depth)
+            {f'{str(e)},{str(c)}': FinetunerSubnet(device, X_shape, depth=subnet_depth)
              for e, c in itertools.product(range(4), range(-1, 2))}
         )
+        self.subnets.to(device)
 
     def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
         # Sanitize E, C
