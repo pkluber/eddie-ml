@@ -152,7 +152,7 @@ class FinetunerSubnet(nn.Module):
         self.net.to(device)
  
     def forward(self, X: torch.Tensor):
-        return self.net(X).squeeze(-1) / 10000
+        return self.net(X).squeeze(-1) / 1000
 
 class UEDDIEFinetuner(nn.Module):
     def __init__(self, device: torch.device, X_shape: tuple, subnet_depth: int = 2):
