@@ -9,6 +9,7 @@ with h5py.File('output-neutral_pca.hdf5', 'r') as fd:
     systems = fd['system'][:]
 
 systems = [system.decode('ascii') for system in systems]
+unique_systems = set(systems)
 
 # Parse energies.dat
 energies = {}
@@ -47,14 +48,10 @@ for file in data_dir.rglob('*'):
             AtomTypes[sys_name] = atom_list
 
 # Convert for model.fit call
-y = np.array([energies[system] for system in systems])
-natoms = np.array([Natoms[system] for system in systems])
-atomtypes = np.array([AtomTypes[system] for system in systems], dtype=object)
-
-X = X.reshape(y.shape[0], -1)
-y = y.reshape(-1, 1)
-
-print(X.shape, y.shape, natoms.shape, atomtypes.shape)
+X = np.array([[x for x, system in zip(X, systems) if system == unique_system] for unique_system in unique_systems], dtype=object)
+y = np.array([[energies[system]] for system in unique_systems])
+natoms = np.array([Natoms[system] for system in unique_systems], dtype=object)
+atomtypes = np.array([AtomTypes[system] for system in unique_systems], dtype=object)
 
 from kernels.crossvalidate import elemental_kernel_CV
 
@@ -63,4 +60,4 @@ kp_grid = {'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000],
            'lambda': [1e-6, 1e-5, 1e-4]}
 
 model = elemental_kernel_CV(krr_param_grid=kp_grid)
-model.fit(X, y, natoms, atomtypes, show_plot=False)
+model.fit(X, y, natoms, atomtypes, show_plot=True)

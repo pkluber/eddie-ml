@@ -8,7 +8,7 @@ from scipy.linalg import cholesky, solve_triangular
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from dimer_kernels import ElementalDimerSumKernel, ElementalDimerAverageKernel
+from .dimer_kernels import ElementalDimerSumKernel, ElementalDimerAverageKernel
 from dscribe.kernels import REMatchKernel, AverageKernel
 import os 
 import matplotlib.pyplot as plt
@@ -173,7 +173,7 @@ class elemental_kernel_CV(BaseEstimator):
                 plt.xlabel('lambda')
                 plt.ylabel('gamma')
                 plt.colorbar()
-                plt.show()
+                plt.savefig('gpr.png')
             else: # n_funcs > 1:
                 fig, ax = plt.subplots(nrows=1, ncols=n_funcs, figsize=(10,4))
                 for i in range(n_funcs):
@@ -188,7 +188,7 @@ class elemental_kernel_CV(BaseEstimator):
                     ax[i].set_yticklabels(list(self.krr_param_grid['gamma']))
                     ax[i].set_yticks(range(n_gamma))
                     plt.colorbar(im, ax=ax[i])     
-                plt.show()
+                plt.savefig('gpr.png')
 
         min_params = np.argsort(errors, axis=None)
         gamma_i, kernel_func_i, lambda_i = np.unravel_index(min_params[0], errors.shape)
