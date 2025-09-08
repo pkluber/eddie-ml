@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+import itertools
+
 from typing import Tuple
 
 def create_funnel(h: int, depth: int):
@@ -96,7 +98,84 @@ class UEDDIEMoE(nn.Module):
 
         return (gate_outputs * expert_outputs).sum(dim=-1)
 
-        
+
+class SelfAttention(nn.Module):
+    def __init__(self, embed_dim: int):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.W_q = nn.Linear(embed_dim, embed_dim)
+        self.W_k = nn.Linear(embed_dim, embed_dim)
+        self.W_v = nn.Linear(embed_dim, embed_dim)
+
+    def forward(self, x):
+        Q = self.W_q(x)
+        K = self.W_k(x)
+        V = self.W_v(x)
+
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.embed_dim ** 0.5)
+        attn = F.softmax(scores, dim=-1)
+        out = torch.matmul(attn, V)
+        return out
+
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_dim: int, ff_hidden_dim: int):
+        super().__init__()
+        self.attn = SelfAttention(embed_dim)
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.ff = nn.Sequential(
+            nn.Linear(embed_dim, ff_hidden_dim),
+            nn.Softplus(),
+            nn.Linear(ff_hidden_dim, embed_dim),
+        )
+        self.norm2 = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):
+        # Self-attention + residual + norm
+        attn_out = self.attn(x)
+        x = self.norm1(x + attn_out)
+
+        # Feed-forward + residual + norm
+        ff_out = self.ff(x)
+        x = self.norm2(x + ff_out)
+
+        return x
+
+class FinetunerSubnet(nn.Module):
+    def __init__(self, X_shape: tuple, depth: int = 1):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Sequential(*[TransformerBlock(X.shape[-2], 128) for _ in range(depth)]),
+            nn.Linear(X.shape[-2], 1),
+        )
+    
+    def forward(self, X: torch.Tensor):
+        return self.net(X).squeeze(-1)
+
+class UEDDIEFinetuner(nn.Module):
+    def __init__(self, X_shape: tuple, subnet_depth: int = 1):
+        super().__init__()
+        self.subnets = nn.ModuleDict(
+            {f'{str(e)},{str(c)}': FinetunerSubnet(X_shape, depth=subnet_depth)
+             for e, c in itertools.product(range(4), range(-1, 2))}
+        )
+
+    def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
+        # Sanitize E, C
+        E = E.to(torch.int64)
+        C = C.to(torch.int64)
+
+        per_atom_finetune = torch.zeros(X.shape[:-1], device=X.device)
+
+        # Apply subnets
+        for e in range(4):
+            for c in range(-1, 2):
+                mask, X_masked = create_mask(X, torch.logical_and((E == e), (C == c)))
+                print(mask.shape)
+                print(X_masked.shape)
+                per_atom_finetune = torch.where(mask[:, :, 0], self.subnets[f'{str(e)},{str(c)}'](X_masked), per_atom_finetune)
+
+        return -per_atom_finetune.sum(dim=1)
+
 
 # Example usage
 if __name__ == '__main__':
@@ -113,3 +192,9 @@ if __name__ == '__main__':
     moe_model = UEDDIEMoE(X.shape)
     y = moe_model(X, E, C)
     print(f'MoE output shape: {y.shape}')
+
+    finetuner = UEDDIEFinetuner(X.shape)
+    y = finetuner(X, E, C)
+    print(f'Finetuner output shape: {y.shape}')
+    print(f'UEDDIEFinetuner has {sum(param.numel() for param in finetuner.parameters())} parameters')
+
