@@ -43,11 +43,6 @@ print(f'Beginning training using device={device}!', flush=True)
 
 train_losses = []
 
-# Early stopping
-early_stopping_patience = 80
-best_val_loss = float('inf')
-epochs_no_improve = 0
-
 n_epoch = 2000
 for epoch in range(n_epoch):
     model.train()
