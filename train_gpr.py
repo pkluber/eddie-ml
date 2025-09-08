@@ -56,7 +56,7 @@ atomtypes = np.array([AtomTypes[system] for system in unique_systems], dtype=obj
 from kernels.crossvalidate import elemental_kernel_CV
 
 kp_grid = {'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000], 
-           'kernel_func': ['cosine', 'euclidean'],
+           'kernel_func': ['cosine', 'poly'],
            'lambda': [1e-6, 1e-5, 1e-4]}
 
 model = elemental_kernel_CV(krr_param_grid=kp_grid)
