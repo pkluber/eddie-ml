@@ -37,7 +37,6 @@ model.to(device)
 # Loss and stuff
 loss_function = nn.MSELoss()
 optimizer = optim.AdamW(list(model.parameters()) + list(finetuner.parameters()), lr=1e-5)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=60)
 
 print(f'Beginning training using device={device}!', flush=True)
 
@@ -73,15 +72,13 @@ for epoch in range(n_epoch):
             if epoch < n_epoch // 2:
                 Y_pred = model(X, E, C)
             else:
-                Y_pred = model(X, E, C).detach() + finetuner(X, E, C)
+                Y_pred = model(X, E, C) + finetuner(X, E, C)
 
             loss = loss_function(Y_pred, Y) 
             val_loss += loss.item()
 
     val_loss /= len(validation_dataloader)
-
-    scheduler.step(val_loss)
-
+    
     # Output
     if epoch % 5 == 0:
         print(f'Epoch {epoch}, train loss: {train_losses[-1]}, val loss: {val_loss}, LR: {optimizer.param_groups[0]["lr"]}', flush=True)

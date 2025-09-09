@@ -68,12 +68,14 @@ plot_and_fit(xs, ys, 'black', 'gray')
 # Evaluate the model on each of the systems
 import torch
 from dataset import UEDDIEDataset
-from model import UEDDIENetwork
+from model import UEDDIENetwork, UEDDIEFinetuner
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = torch.load('model.pt', weights_only=False, map_location=device)
 model.eval()
+finetuner = torch.load('finetuner.pt', weights_only=False, map_location=device)
+finetuner.eval()
 
 dataset = UEDDIEDataset()
 
@@ -88,7 +90,7 @@ with torch.no_grad():
             e = e.unsqueeze(0)
             c = c.unsqueeze(0)
 
-            y_pred = model(x, e, c)
+            y_pred = model(x, e, c) + finetuner(x, e, c) 
             
             ie_model = y_pred.item() * 627.509
             if ie_model < min_ie:
