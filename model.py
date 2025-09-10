@@ -301,7 +301,7 @@ class UEDDIENetwork(nn.Module):
 
         for e in self.elem_subnets.keys():
             mask, X_masked = create_mask(X, E == int(e))
-            X_masked = X_masked.to(torch.device(self.devices_e[e]))
+            X_masked = X_masked.to(torch.device(self.devices_e[e]), non_blocking=True)
             energy_parts.append((mask, self.elem_subnets[e](X_masked)))
 
         for mask_e, energy_e in energy_parts:
@@ -314,7 +314,7 @@ class UEDDIENetwork(nn.Module):
         for c in self.charge_subnets.keys():
             mask, X_masked = create_mask(X, C == int(c))
             X_masked = X_masked.to(torch.device(self.devices_c[c]))
-            charge_parts.append((mask, per_atom_IE.to(torch.device(self.devices_c[c])) * torch.exp(self.charge_subnets[c](X_masked))))
+            charge_parts.append((mask, per_atom_IE.to(torch.device(self.devices_c[c]), non_blocking=True) * torch.exp(self.charge_subnets[c](X_masked))))
         
         for mask_c, energy_c in charge_parts:
             energy_c = energy_c.to(per_atom_IE.device)

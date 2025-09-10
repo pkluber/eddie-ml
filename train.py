@@ -37,9 +37,9 @@ validation_dataset.apply_scalers(scaler_x, scaler_y)
 test_dataset.apply_scalers(scaler_x, scaler_y)
 
 # Initialize dataloaders
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-validation_dataloader = DataLoader(validation_dataset, batch_size=4, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, pin_memory=True)
+validation_dataloader = DataLoader(validation_dataset, batch_size=4, shuffle=True, pin_memory=True)
+test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, pin_memory=True)
 
 # Initialize model
 x_sample, _, _, _ = next(iter(train_dataloader))
@@ -60,7 +60,7 @@ print(f'Beginning training using primarily device={device}!', flush=True)
 
 train_losses = []
 
-n_epoch = 2000
+n_epoch = 1000
 for epoch in range(n_epoch):
     # Set LR to 1e-4 for the finetuner initially 
     if epoch == 1000:
@@ -72,7 +72,7 @@ for epoch in range(n_epoch):
 
     train_loss = 0
     for X, E, C, Y in train_dataloader:
-        X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
+        X, E, C, Y = X.to(device, non_blocking=True), E.to(device, non_blocking=True), C.to(device, non_blocking=True), Y.to(device, non_blocking=True)
         optimizer.zero_grad()
         
         if epoch < n_epoch // 2: # For 1-1000 epochs train base model
@@ -92,7 +92,7 @@ for epoch in range(n_epoch):
     val_loss = 0
     with torch.no_grad():
         for X, E, C, Y in validation_dataloader:
-            X, E, C, Y = X.to(device), E.to(device), C.to(device), Y.to(device)
+            X, E, C, Y = X.to(device, non_blocking=True), E.to(device, non_blocking=True), C.to(device, non_blocking=True), Y.to(device, non_blocking=True)
 
             if epoch < n_epoch // 2:
                 Y_pred = model(X, E, C)
@@ -114,7 +114,6 @@ for epoch in range(n_epoch):
         torch.save(model, 'model.pt')
         torch.save(finetuner, 'finetuner.pt')
 
-#TODO more for testing
 test_loss = 0
 with torch.no_grad():
     for X, E, C, Y in test_dataloader:
@@ -124,5 +123,73 @@ with torch.no_grad():
         test_loss += loss.item()
 
 print(f'Test average loss: {test_loss / len(test_dataset)}')
-    
 
+
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+
+ies = []
+ies_pred = []
+with torch.no_grad():
+    for x, e, c, y, name in [test_dataset.get(x, return_name=True) for x in range(len(test_dataset))]:
+        print(f'Testing {name}...')
+        x, e, c = x.to(device), e.to(device), c.to(device)
+        x = x.unsqueeze(0)
+        e = e.unsqueeze(0)
+        c = c.unsqueeze(0)
+
+        y_pred = model(x, e, c).cpu()
+        y_pred = np.array([y_pred.item()])
+        y_pred = y_pred.reshape(1, 1)
+        ie_pred = scaler_y.inverse_transform(y_pred)[0, 0] * 627.509  # kcal/mol
+
+        y = y.cpu().item()
+        y = np.array([y]).reshape(1, 1)
+        ie = scaler_y.inverse_transform(y)[0, 0] * 627.509
+
+        print(f'Predicted IE (kcal/mol): {ie_pred:.1f}')
+        print(f'Actual IE    (kcal/mol): {ie:.1f}')
+
+        ies.append(ie)
+        ies_pred.append(ie_pred)
+
+ies = np.array(ies)
+ies_pred = np.array(ies_pred)
+
+# Compute metrics
+mse = mean_squared_error(ies, ies_pred)
+rmse = np.sqrt(mse)
+mae = mean_absolute_error(ies, ies_pred)
+r2 = r2_score(ies, ies_pred)
+
+print(f'MSE:  {mse:.1f}')
+print(f'RMSE: {rmse:.1f}')
+print(f'MAE:  {mae:.1f}')
+print(f'R^2:  {r2:.2f}')
+
+# Best fit line
+reg = LinearRegression().fit(ies_pred.reshape(-1, 1), ies)
+slope = reg.coef_[0]
+intercept = reg.intercept_
+
+# Visualize test results
+plt.scatter(ies_pred, ies, alpha=0.8)
+line = np.linspace(min(ies_pred), max(ies_pred), 100)
+plt.plot(line, line, 'r--', label='Ideal (y=x)')
+plt.plot(line, slope*line + intercept, 'g-', label='Best-fit line')
+plt.xlabel('Predicted $\\Delta E^{\\text{INT}}$ (kcal/mol)')
+plt.ylabel('Actual $\\Delta E^{\\text{INT}}$ (kcal/mol)')
+#plt.title('Predicted vs. Actual Interaction Energy')
+plt.legend()
+
+plt.text(
+    0.05, 0.95, f'$R^2 = {r2:.2f}$',
+    transform=plt.gca().transAxes,
+    fontsize=12,
+    verticalalignment='top',
+    bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', boxstyle='square,pad=0.3')
+)
+
+plt.tight_layout()
+plt.savefig('test_results.png', dpi=300)
