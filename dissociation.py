@@ -78,6 +78,7 @@ finetuner = torch.load('finetuner.pt', weights_only=False, map_location=device)
 finetuner.eval()
 
 dataset = UEDDIEDataset()
+_, scaler_y = dataset.load_and_apply_scalers()
 
 xs_model = []
 ys_model = []
@@ -91,8 +92,9 @@ with torch.no_grad():
             c = c.unsqueeze(0)
 
             y_pred = model(x, e, c) + finetuner(x, e, c) 
-            
-            ie_model = y_pred.item() * 627.509
+            y_pred = np.array([y_pred.item()])
+            y_pred = y_pred.reshape(1, 1)
+            ie_model = scaler_y.inverse_transform(y_pred)[0, 0] * 627.509
             if ie_model < min_ie:
                 min_ie = ie_model
                 min_sys = name

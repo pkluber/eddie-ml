@@ -3,6 +3,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import h5py
+from sklearn.preprocessing import StandardScaler, RobustScaler
+from joblib import dump, load
+from typing import Tuple
 
 from utils import get_dataset, get_datasets_list
 from random import shuffle
@@ -86,6 +89,40 @@ class UEDDIEDataset(Dataset):
 
         return self.X[index, ...], self.E[index, ...], self.C[index, ...], self.Y[index, ...]
     
+    def scale_and_save_scalers(self, name: str = 'train') -> Tuple[StandardScaler, RobustScaler]:
+        scaler_x = StandardScaler()
+        X_shape = self.X.shape
+        self.X = scaler_x.fit_transform(self.X.reshape(-1, X_shape[-1]))
+        self.X = self.X.reshape(*X_shape)
+        self.X = torch.from_numpy(self.X)
+        dump(scaler_x, f'scaler_{name}.joblib')
+
+        scaler_y = RobustScaler()
+        Y_shape = self.Y.shape
+        self.Y = scaler_y.fit_transform(self.Y.reshape(-1,1))
+        self.Y = self.Y.reshape(*Y_shape)
+        self.Y = torch.from_numpy(self.Y)
+        dump(scaler_y, f'scaler_y_{name}.joblib')
+        
+        return scaler_x, scaler_y
+
+    def apply_scalers(self, scaler_x: StandardScaler, scaler_y: RobustScaler):
+        X_shape = self.X.shape
+        self.X = scaler_x.transform(self.X.reshape(-1, X_shape[-1]))
+        self.X = self.X.reshape(*X_shape)
+        self.X = torch.from_numpy(self.X)
+
+        Y_shape = self.Y.shape
+        self.Y = scaler_y.transform(self.Y.reshape(-1,1))
+        self.Y = self.Y.reshape(*Y_shape)
+        self.Y = torch.from_numpy(self.Y)
+    
+    def load_and_apply_scalers(self, name: str = 'train') -> Tuple[StandardScaler, RobustScaler]:
+        scaler_x = load(f'scaler_{name}.joblib')
+        scaler_y = load(f'scaler_y_{name}.joblib')
+        self.apply_scalers(scaler_x, scaler_y)
+        return scaler_x, scaler_y
+ 
     def __len__(self):
         return self.X.shape[0]
 
@@ -189,10 +226,3 @@ if __name__ == '__main__':
     print(f'e dtype: {e_sample.dtype}')
     print(f'c dtype: {c_sample.dtype}')
     print(f'y dtype: {y_sample.dtype}')
-
-    train_dataloader, test_dataloader = get_train_test_dataloaders()
-    print(f'Train dataloader len={len(train_dataloader)}\nTest dataloader len={len(test_dataloader)}')
-
-
-
-
