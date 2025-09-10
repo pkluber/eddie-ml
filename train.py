@@ -34,7 +34,8 @@ test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Initialize model
 x_sample, _, _, _ = next(iter(train_dataloader))
-model = UEDDIENetwork(x_sample.shape)
+d_model = x_sample.shape[-1]
+model = UEDDIENetwork(d_model, num_heads=4, d_ff=128, depth_e=10, depth_c=10)
 model.to(device)
 
 finetuner = UEDDIEFinetuner(device, x_sample.shape)

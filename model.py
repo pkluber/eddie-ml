@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import math
 
 import itertools
 
@@ -178,11 +179,95 @@ class UEDDIEFinetuner(nn.Module):
 
         return -per_atom_finetune.sum(dim=1)
 
-class UEDDIENetwork(nn.Module):
-    def __init__(self, X_shape: tuple):
+# Swish-gated GLU or SwiGLU implementation
+class SwiGLU(nn.Module):
+    def __init__(self, d_model: int, d_ff: int):
         super().__init__()
-        self.elem_subnets = nn.ModuleDict({str(e): FunnelMLP(X_shape[2]) for e in range(4)})
-        self.charge_subnets = nn.ModuleDict({str(c): FunnelMLP(X_shape[2]) for c in range(-1, 2)})
+
+        self.fc1 = nn.Linear(d_model, 2*d_ff)
+        self.fc2 = nn.Linear(d_ff, d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.fc1(x)
+        x_a, x_b = x.chunk(2, dim=-1)
+        x = x_a * F.silu(x_b)
+        return self.fc2(x)
+
+# Multi-head self-attention implementation
+class MultiHeadSelfAttention(nn.Module):
+    def __init__(self, d_model: int, num_heads: int):
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = num_heads
+        
+        # Round up head dimension 
+        self.d_padded = math.ceil(d_model / num_heads) * num_heads
+        self.d_head = self.d_padded // num_heads
+        
+        # QKV projections with padded dimension
+        self.qkv = nn.Linear(d_model, 3*self.d_padded)
+        self.proj = nn.Linear(self.d_padded, d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, N, _ = x.shape
+
+        qkv = self.qkv(x)
+        q, k, v = qkv.chunk(3, dim=-1)
+
+        # Reshape to [B, num_heads, N, d_head]
+        q = q.view(B, N, self.num_heads, self.d_head).transpose(1,2)
+        k = k.view(B, N, self.num_heads, self.d_head).transpose(1,2)
+        v = v.view(B, N, self.num_heads, self.d_head).transpose(1,2)
+
+        # Scaled dot-product attention
+        attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_head)
+        attn_probs = F.softmax(attn_scores, dim=-1) # [B, num_heads, N, N]
+        out = torch.matmul(attn_probs, v)  # [B, num_heads, N, d_head]
+
+        # Combine heads back, make sure contiguous again after all the transposes
+        out = out.transpose(1,2).contiguous().view(B, N, self.d_padded)
+        
+        # Final step: project from d_padded to d_model 
+        return self.proj(out)
+
+class UEDDIETransformerBlock(nn.Module):
+    def __init__(self, d_model: int, num_heads: int, d_ff: int):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(d_model)
+        self.attn = MultiHeadSelfAttention(d_model, num_heads)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.ff = SwiGLU(d_model, d_ff)
+
+    def forward(self, x):
+        # Pre-norm then apply MHSA
+        x = self.norm1(x)
+        attn_out = self.attn(x)
+        
+        # Residual connection to another pre-norm then apply SwiGLU 
+        x = self.norm2(x + attn_out)
+        ff_out = self.ff(x)
+        
+        # Return residual of SwiGLU and pre-normed MHSA
+        return x + ff_out
+
+# Subnet of transformer blocks that projects to 1 dim at the end 
+class UEDDIESubnet(nn.Module):
+    def __init__(self, d_model: int, num_heads: int, d_ff: int, depth: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Sequential(*[UEDDIETransformerBlock(d_model, num_heads, d_ff) for _ in range(depth)]),
+            nn.Linear(d_model, 1)
+        )
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        return self.net(X).squeeze(-1)
+
+
+class UEDDIENetwork(nn.Module):
+    def __init__(self, d_model: int, num_heads: int = 4, d_ff: int = 128, depth_e: int = 10, depth_c: int = 10):
+        super().__init__()
+        self.elem_subnets = nn.ModuleDict({str(e): UEDDIESubnet(d_model, num_heads, d_ff, depth_e) for e in range(4)})
+        self.charge_subnets = nn.ModuleDict({str(c): UEDDIESubnet(d_model, num_heads, d_ff, depth_c) for c in range(-1, 2)})
 
     def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
         # Sanitize E, C, make sure they're int
@@ -210,7 +295,7 @@ if __name__ == '__main__':
     E = torch.randn(16, 34)
     C = torch.randn(16, 34)
     Y = torch.randn(16)
-    model = UEDDIENetwork(X.shape)
+    model = UEDDIENetwork(X.shape[-1])
     y = model(X, E, C)
     print(f'Input shape: {X.shape}, {E.shape}, {C.shape}\nOutput shape: {y.shape}\nExpected shape: {Y.shape}')
 
