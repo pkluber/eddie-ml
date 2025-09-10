@@ -91,7 +91,7 @@ with torch.no_grad():
             e = e.unsqueeze(0)
             c = c.unsqueeze(0)
 
-            y_pred = model(x, e, c) + finetuner(x, e, c) 
+            y_pred = model(x, e, c)
             y_pred = np.array([y_pred.item()])
             y_pred = y_pred.reshape(1, 1)
             ie_model = scaler_y.inverse_transform(y_pred)[0, 0] * 627.509

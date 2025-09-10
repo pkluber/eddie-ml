@@ -12,8 +12,17 @@ from pathlib import Path
 # Needed for 64-bit precision
 torch.set_default_dtype(torch.float64)
 
-# Set device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Setup devices
+devices = []
+num_gpus = torch.cuda.device_count()
+if num_gpus == 0:
+    devices.append(torch.device('cpu'))
+else:
+    for x in range(num_gpus):
+        print(f'Found GPU {x}: {torch.cuda.get_device_name(x)}')
+        devices.append(torch.device(f'cuda:{x}'))
+
+device = devices[0]
 
 # Load datasets
 train_dataset, validation_dataset, test_dataset = dataset.get_train_validation_test_datasets()
@@ -35,8 +44,9 @@ test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 # Initialize model
 x_sample, _, _, _ = next(iter(train_dataloader))
 d_model = x_sample.shape[-1]
-model = UEDDIENetwork(d_model, num_heads=4, d_ff=128, depth_e=10, depth_c=10)
-model.to(device)
+model = UEDDIENetwork(d_model, num_heads=4, d_ff=128, depth_e=5, depth_c=5, multi_gpu=(num_gpus==4))
+if len(devices) == 1:
+    model.to(device) 
 
 finetuner = UEDDIEFinetuner(device, x_sample.shape)
 model.to(device)
@@ -46,7 +56,7 @@ loss_function = nn.MSELoss()
 optimizer = optim.AdamW(list(model.parameters()) + list(finetuner.parameters()), lr=1e-5)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=60)
 
-print(f'Beginning training using device={device}!', flush=True)
+print(f'Beginning training using primarily device={device}!', flush=True)
 
 train_losses = []
 
