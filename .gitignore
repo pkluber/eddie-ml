@@ -160,3 +160,6 @@ psi.*
 
 # models folder
 models
+
+# joblib dumps (like scalers)
+*.joblib
