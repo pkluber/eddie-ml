@@ -49,7 +49,7 @@ if len(devices) == 1:
     model.to(device) 
 
 finetuner = UEDDIEFinetuner(device, x_sample.shape)
-model.to(device)
+finetuner.to(device)
 
 # Loss and stuff
 loss_function = nn.MSELoss()

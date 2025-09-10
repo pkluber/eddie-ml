@@ -231,15 +231,12 @@ class MultiHeadSelfAttention(nn.Module):
         return self.proj(out)
 
 class UEDDIETransformerBlock(nn.Module):
-    def __init__(self, device: torch.device, d_model: int, num_heads: int, d_ff: int):
+    def __init__(self, d_model: int, num_heads: int, d_ff: int):
         super().__init__()
-        self.norm1 = nn.LayerNorm(d_model, device=device)
+        self.norm1 = nn.LayerNorm(d_model)
         self.attn = MultiHeadSelfAttention(d_model, num_heads)
-        self.norm2 = nn.LayerNorm(d_model, device=device)
+        self.norm2 = nn.LayerNorm(d_model)
         self.ff = SwiGLU(d_model, d_ff)
-
-        self.attn.to(device)
-        self.ff.to(device)
 
     def forward(self, x):
         # Pre-norm then apply MHSA
@@ -255,13 +252,12 @@ class UEDDIETransformerBlock(nn.Module):
 
 # Subnet of transformer blocks that projects to 1 dim at the end 
 class UEDDIESubnet(nn.Module):
-    def __init__(self, device: torch.device, d_model: int, num_heads: int, d_ff: int, depth: int):
+    def __init__(self, d_model: int, num_heads: int, d_ff: int, depth: int):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Sequential(*[UEDDIETransformerBlock(device, d_model, num_heads, d_ff) for _ in range(depth)]),
+            nn.Sequential(*[UEDDIETransformerBlock(d_model, num_heads, d_ff) for _ in range(depth)]),
             nn.Linear(d_model, 1)
         )
-        self.net.to(device)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         return self.net(X).squeeze(-1)
@@ -282,8 +278,8 @@ class UEDDIENetwork(nn.Module):
             self.devices_e = {'0': device, '1': device, '2': device, '3': device}
             self.devices_c = {'-1': device, '0': device, '1': device}
 
-        self.elem_subnets = nn.ModuleDict({str(e): UEDDIESubnet(torch.device(self.devices_e[str(e)]), d_model, num_heads, d_ff, depth_e) for e in range(4)})
-        self.charge_subnets = nn.ModuleDict({str(c): UEDDIESubnet(torch.device(self.devices_c[str(c)]), d_model, num_heads, d_ff, depth_c) for c in range(-1, 2)})
+        self.elem_subnets = nn.ModuleDict({str(e): UEDDIESubnet(d_model, num_heads, d_ff, depth_e) for e in range(4)})
+        self.charge_subnets = nn.ModuleDict({str(c): UEDDIESubnet(d_model, num_heads, d_ff, depth_c) for c in range(-1, 2)})
         
         # Assign subnets to different devices, if applicable
         for e in range(4):
@@ -291,10 +287,6 @@ class UEDDIENetwork(nn.Module):
         
         for c in range(-1, 2):
             self.charge_subnets[str(c)].to(torch.device(self.devices_c[str(c)]))
-
-        print(self.devices_e)
-        print(self.devices_c)
-
 
     def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
         # Sanitize E, C, make sure they're int
@@ -322,7 +314,7 @@ class UEDDIENetwork(nn.Module):
         for c in self.charge_subnets.keys():
             mask, X_masked = create_mask(X, C == int(c))
             X_masked = X_masked.to(torch.device(self.devices_c[c]))
-            charge_parts.append((mask, per_atom_IE * torch.exp(self.charge_subnets[c](X_masked))))
+            charge_parts.append((mask, per_atom_IE.to(torch.device(self.devices_c[c])) * torch.exp(self.charge_subnets[c](X_masked))))
         
         for mask_c, energy_c in charge_parts:
             energy_c = energy_c.to(per_atom_IE.device)
