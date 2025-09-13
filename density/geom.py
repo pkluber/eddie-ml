@@ -501,6 +501,8 @@ def power_spectrum(c, n_l, n, cgs=None):
     bispectrum = np.array(bispectrum).T
     bispectrum =  bispectrum.reshape(*c_shape[:-1], -1)
     bispectrum = np.concatenate([casimirs, bispectrum], axis = -1)
+    print(casimirs)
+    print(bispectrum)
     return bispectrum
 
 

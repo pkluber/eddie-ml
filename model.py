@@ -83,11 +83,11 @@ class UEDDIEPrototype(nn.Module):
         return -per_atom_IE.sum(dim=1)
 
 class UEDDIEMoE(nn.Module):
-    def __init__(self, X_shape: tuple, num_experts: int = 8):
+    def __init__(self, d_model: int, num_experts: int = 8):
         super().__init__()
-        self.experts = nn.ModuleList([UEDDIENetwork(X_shape) for _ in range(num_experts)])
+        self.experts = nn.ModuleList([UEDDIENetwork(d_model) for _ in range(num_experts)])
         self.gating = nn.Sequential(
-            nn.Linear(X_shape[-1], num_experts), 
+            nn.Linear(d_model, num_experts), 
             nn.Softmax(dim=-1)
         )
 
@@ -154,30 +154,6 @@ class FinetunerSubnet(nn.Module):
  
     def forward(self, X: torch.Tensor):
         return self.net(X).squeeze(-1) / 1000
-
-class UEDDIEFinetuner(nn.Module):
-    def __init__(self, device: torch.device, X_shape: tuple, subnet_depth: int = 2):
-        super().__init__()
-        self.subnets = nn.ModuleDict(
-            {f'{str(e)},{str(c)}': FinetunerSubnet(device, X_shape, depth=subnet_depth)
-             for e, c in itertools.product(range(4), range(-1, 2))}
-        )
-        self.subnets.to(device)
-
-    def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
-        # Sanitize E, C
-        E = E.to(torch.int64)
-        C = C.to(torch.int64)
-
-        per_atom_finetune = torch.zeros(X.shape[:-1], device=X.device)
-
-        # Apply subnets
-        for e in range(4):
-            for c in range(-1, 2):
-                mask, X_masked = create_mask(X, torch.logical_and((E == e), (C == c)))
-                per_atom_finetune = torch.where(mask[:, :, 0], self.subnets[f'{str(e)},{str(c)}'](X_masked), per_atom_finetune)
-
-        return -per_atom_finetune.sum(dim=1)
 
 # Swish-gated GLU or SwiGLU implementation
 class SwiGLU(nn.Module):
@@ -322,6 +298,29 @@ class UEDDIENetwork(nn.Module):
 
         return -per_atom_IE.sum(dim=1)
 
+class UEDDIEFinetuner(nn.Module):
+    def __init__(self, d_model: int, num_heads: int = 4, d_ff: int = 128, subnet_depth: int = 2):
+        super().__init__()
+        self.subnets = nn.ModuleDict(
+            {f'{str(e)},{str(c)}': UEDDIESubnet(d_model, num_heads, d_ff, subnet_depth)
+             for e, c in itertools.product(range(4), range(-1, 2))}
+        )
+
+    def forward(self, X: torch.Tensor, E: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
+        # Sanitize E, C
+        E = E.to(torch.int64)
+        C = C.to(torch.int64)
+
+        per_atom_finetune = torch.zeros(X.shape[:-1], device=X.device)
+
+        # Apply subnets
+        for e in range(4):
+            for c in range(-1, 2):
+                mask, X_masked = create_mask(X, torch.logical_and((E == e), (C == c)))
+                per_atom_finetune = torch.where(mask[:, :, 0], self.subnets[f'{str(e)},{str(c)}'](X_masked), per_atom_finetune)
+
+        return -per_atom_finetune.sum(dim=1)
+
 # Example usage
 if __name__ == '__main__':
     X = torch.randn(16, 34, 17)
@@ -334,11 +333,11 @@ if __name__ == '__main__':
 
     print(f'UEDDIENetwork has {sum(param.numel() for param in model.parameters())} parameters')
 
-    moe_model = UEDDIEMoE(X.shape)
+    moe_model = UEDDIEMoE(X.shape[-1])
     y = moe_model(X, E, C)
     print(f'MoE output shape: {y.shape}')
 
-    finetuner = UEDDIEFinetuner(torch.device('cpu'), X.shape)
+    finetuner = UEDDIEFinetuner(X.shape[-1])
     y = finetuner(X, E, C)
     print(y)
     print(f'Finetuner output shape: {y.shape}')

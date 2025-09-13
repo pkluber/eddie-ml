@@ -48,7 +48,7 @@ model = UEDDIENetwork(d_model, num_heads=4, d_ff=128, depth_e=5, depth_c=5, mult
 if len(devices) == 1:
     model.to(device) 
 
-finetuner = UEDDIEFinetuner(device, x_sample.shape)
+finetuner = UEDDIEFinetuner(d_model, num_heads=4, d_ff=128, subnet_depth=2)
 finetuner.to(device)
 
 # Loss and stuff
@@ -60,7 +60,7 @@ print(f'Beginning training using primarily device={device}!', flush=True)
 
 train_losses = []
 
-n_epoch = 1000
+n_epoch = 2000
 for epoch in range(n_epoch):
     # Set LR to 1e-4 for the finetuner initially 
     if epoch == 1000:
@@ -79,6 +79,12 @@ for epoch in range(n_epoch):
             Y_pred = model(X, E, C)
         else: # For 1000-2000 epochs train finetuner 
             Y_pred = model(X, E, C).detach() + finetuner(X, E, C)
+
+            # Take finetuner training loss wrt signed log Ys
+            # Should help finetuner focus on smaller errors 
+            Y = torch.sign(Y) * torch.log(1 + torch.abs(Y))
+            Y_pred = torch.sign(Y_pred) * torch.log(1 + torch.abs(Y_pred))
+
         loss = loss_function(Y_pred, Y) 
         loss.backward()
         optimizer.step()

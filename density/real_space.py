@@ -366,6 +366,7 @@ def atomic_elf(pos, density, basis, chem_symbol):
                            basis['r_o_' + chem_symbol],
                            basis['gamma_' + chem_symbol],
                            V_cell = V_cell) # change this to xs * xy *xz = 0.93 later
+    print(coeff)
     return coeff
 
 def get_elf_thread(pos, density, basis, chem_symbol,
