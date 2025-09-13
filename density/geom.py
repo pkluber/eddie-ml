@@ -496,13 +496,11 @@ def power_spectrum(c, n_l, n, cgs=None):
                                         cgs[l1,m1,l2,m2,l,m]
                     if np.any(abs(b.imag) > 1e-3):
                         raise Exception('Not real')
-                    bispectrum.append(b.real.round(5))
+                    bispectrum.append(b.real)
     
     bispectrum = np.array(bispectrum).T
     bispectrum =  bispectrum.reshape(*c_shape[:-1], -1)
     bispectrum = np.concatenate([casimirs, bispectrum], axis = -1)
-    print(casimirs)
-    print(bispectrum)
     return bispectrum
 
 
